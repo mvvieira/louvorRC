@@ -22,10 +22,9 @@ export function ddmm(iso: string): string {
   return d && m ? `${d}/${m}` : iso;
 }
 
-/** Data de hoje (AAAA-MM-DD) no fuso local. */
+/** Data de hoje (AAAA-MM-DD) no horário de Brasília, igual no servidor (Vercel, em UTC) e no navegador. */
 export function today(): string {
-  const t = new Date();
-  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
 }
 
 /** Soma `d` meses a "AAAA-MM". */

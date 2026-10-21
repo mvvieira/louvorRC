@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { dayName } from "@/lib/format";
+import { dayName, MESES } from "@/lib/format";
 import type { AgendaItem } from "./layout";
 
 export default function Agenda({ up, past }: { up: AgendaItem[]; past: AgendaItem[] }) {
@@ -21,13 +21,21 @@ export default function Agenda({ up, past }: { up: AgendaItem[]; past: AgendaIte
       </li>
     );
   };
+  // separa por mês, para "31 → 01" não parecer fora de ordem
+  const byMonth = (list: AgendaItem[], isPast: boolean, prefix = "") =>
+    list.flatMap((s, i) => {
+      const m = s.date.slice(0, 7);
+      const head = i === 0 || list[i - 1].date.slice(0, 7) !== m
+        ? [<li key={`m${prefix}${m}`} className="sep">{prefix}{MESES[Number(m.slice(5, 7)) - 1]}{m.slice(0, 4) !== new Date().getFullYear().toString() ? ` ${m.slice(0, 4)}` : ""}</li>]
+        : [];
+      return [...head, item(s, isPast)];
+    });
   return (
     <aside className="agenda">
       <div className="agenda-head"><h2>Agenda</h2><Link className="btn small primary" href="/cultos">Novo culto</Link></div>
       <ul>
-        {up.map((s) => item(s, false))}
-        {past.length > 0 && <li className="sep">Anteriores</li>}
-        {past.map((s) => item(s, true))}
+        {byMonth(up, false)}
+        {byMonth(past, true, "Anteriores · ")}
         {up.length + past.length === 0 && (
           <li className="empty">Nenhum culto ainda. Crie o próximo culto para montar o repertório e a escala.</li>
         )}

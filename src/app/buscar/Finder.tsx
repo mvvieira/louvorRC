@@ -4,8 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import type { Hit, Result } from "@/lib/finder";
 import { saveAsService, searchLinks, syncNow } from "./actions";
 import CopyButton from "../CopyButton";
+import { today } from "@/lib/format";
 
-const today = () => new Date().toISOString().slice(0, 10);
 const vc = (v: string) => (v === "MASCULINO" ? "m" : v === "FEMININO" ? "f" : "");
 
 function label(h: Hit) {
