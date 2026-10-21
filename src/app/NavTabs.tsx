@@ -3,8 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  ["/cultos", "Cultos"],
   ["/calendario", "Calendário"],
+  ["/cultos", "Cultos"],
   ["/escala", "Escala"],
   ["/disponibilidade", "Disponibilidade"],
   ["/musicas", "Músicas"],
