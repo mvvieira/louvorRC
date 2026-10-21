@@ -6,6 +6,7 @@ import { all, one, run, type Song } from "@/lib/db";
 import { cifraHits } from "@/lib/match";
 import { driveItems } from "@/lib/drive";
 import { linkHits, parseQueryLine, rankBy } from "@/lib/finder";
+import { pullRepertoire, syncRepertoire } from "@/lib/repertoire";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const num = (f: FormData, k: string) => Number(f.get(k));
@@ -74,7 +75,10 @@ export async function createService(f: FormData) {
   const r = await run("INSERT INTO services (date, title) VALUES (?, ?)", [date, str(f, "title") || "Culto"]);
   const id = Number(r.lastInsertRowid);
   const list = str(f, "list");
-  if (list) await addSongsFromList(id, list);
+  if (list) {
+    await addSongsFromList(id, list);
+    await syncRepertoire(id);
+  } else await pullRepertoire(id);
   redirect(`/cultos/${id}`);
 }
 
@@ -83,6 +87,7 @@ export async function updateService(f: FormData) {
   const date = str(f, "date");
   if (!date) return;
   await run("UPDATE services SET date=?, title=? WHERE id=?", [date, str(f, "title") || "Culto", id]);
+  await pullRepertoire(id);
   revalidatePath("/", "layout");
 }
 
@@ -156,6 +161,7 @@ export async function addSongToService(serviceId: number, songId: number): Promi
   const r = await run("INSERT INTO service_songs (service_id, song_id, position) VALUES (?,?,?)", [
     serviceId, songId, await nextPosition(serviceId),
   ]);
+  await syncRepertoire(serviceId);
   revalidatePath("/", "layout");
   return Number(r.lastInsertRowid);
 }
@@ -174,7 +180,9 @@ export async function createSongForService(serviceId: number, title: string): Pr
 }
 
 export async function removeServiceSongItem(id: number) {
+  const row = await one<{ service_id: number }>("SELECT service_id FROM service_songs WHERE id=?", [id]);
   await run("DELETE FROM service_songs WHERE id=?", [id]);
+  if (row) await syncRepertoire(Number(row.service_id));
   revalidatePath("/", "layout");
 }
 
@@ -183,12 +191,14 @@ export async function reorderServiceSongs(serviceId: number, ids: number[]) {
   for (let k = 0; k < ids.length; k++) {
     await run("UPDATE service_songs SET position=? WHERE id=? AND service_id=?", [k + 1, ids[k], serviceId]);
   }
+  await syncRepertoire(serviceId);
   revalidatePath("/", "layout");
 }
 
 /** Lista colada: adiciona o que achar no catálogo e devolve o que não achou. */
 export async function pasteSongList(serviceId: number, list: string): Promise<string[]> {
   const missing = await addSongsFromList(serviceId, list, false);
+  await syncRepertoire(serviceId);
   revalidatePath("/", "layout");
   return missing;
 }

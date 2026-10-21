@@ -5,6 +5,7 @@ import { dayName, ddmm } from "@/lib/format";
 import { FUNCOES, splitRoles } from "@/lib/roles";
 import { driveItems } from "@/lib/drive";
 import { linkHits } from "@/lib/finder";
+import { repertoireSiblings } from "@/lib/repertoire";
 import {
   addServiceMember, deleteService, removeServiceMember, setServiceMember, updateService, updateServiceNotes,
 } from "../../actions";
@@ -34,6 +35,7 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
     [id],
   );
   const songs = await all<Song>("SELECT id, title, song_key, version, artist, vozes_url, cifra_url FROM songs ORDER BY title");
+  const twins = await repertoireSiblings(id);
   const drive = await driveItems();
   const opt = (h: { url: string; name: string; folder: string; version: string; score: number }): LinkOpt => ({
     url: h.url,
@@ -86,7 +88,8 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
       )}
 
       <div className="sec">
-        <Repertoire serviceId={id} items={items} songs={songs} links={links} driveReady={drive.length > 0} />
+        <Repertoire serviceId={id} items={items} songs={songs} links={links} driveReady={drive.length > 0}
+          twins={twins.map((t) => ({ id: Number(t.id), title: t.title }))} />
       </div>
 
       <div className="sec">

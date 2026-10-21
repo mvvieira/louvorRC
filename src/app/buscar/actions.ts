@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { driveItems, ensureFreshIndex, syncDrive } from "@/lib/drive";
 import { findLinks, type Result } from "@/lib/finder";
 import { one, run } from "@/lib/db";
+import { syncRepertoire } from "@/lib/repertoire";
 
 export async function searchLinks(text: string): Promise<{ results: Result[]; warning: string | null }> {
   let warning: string | null = null;
@@ -45,5 +46,6 @@ export async function saveAsService(date: string, title: string, picks: Pick[]) 
     }
     await run("INSERT INTO service_songs (service_id, song_id, position) VALUES (?,?,?)", [serviceId, song.id, pos++]);
   }
+  await syncRepertoire(serviceId);
   redirect(`/cultos/${serviceId}`);
 }

@@ -20,8 +20,10 @@ const vc = (v: string) => (v === "MASCULINO" ? "m" : v === "FEMININO" ? "f" : ""
 let tempId = -1;
 
 /** Repertório do culto: busca, colar lista, arrastar para reordenar. Tudo aparece na hora e salva em seguida. */
-export default function Repertoire({ serviceId, items, songs, links, driveReady }: {
+export default function Repertoire({ serviceId, items, songs, links, driveReady, twins = [] }: {
   serviceId: number; items: RepItem[]; songs: RepSong[]; links: Record<number, SongLinks>; driveReady: boolean;
+  /** cultos do mesmo domingo que cantam este mesmo repertório */
+  twins?: { id: number; title: string }[];
 }) {
   const [list, apply] = useOptimistic(items, (cur: RepItem[], op: Op) => {
     if (op.type === "add") return [...cur, op.item];
@@ -103,6 +105,13 @@ export default function Repertoire({ serviceId, items, songs, links, driveReady 
   return (
     <>
       <h3>Repertório <small>{list.length} música{list.length === 1 ? "" : "s"}</small></h3>
+      {twins.length > 0 && (
+        <p className="twin-note">
+          🔗 Mesmo repertório do{" "}
+          {twins.map((t, i) => <span key={t.id}>{i > 0 && " e do "}<Link href={`/cultos/${t.id}`}>{t.title}</Link></span>)}
+          : o que mudar aqui muda lá também.
+        </p>
+      )}
       {(fillable > 0 || filling) && (
         <div className="fill-bar">
           {fillable > 0 && (
