@@ -2,8 +2,6 @@ import type { DriveItem } from "./drive";
 import { normalize, parseDriveName } from "./text";
 
 export type Query = { line: string; title: string; key: string; version: string; note: string };
-export type Hit = DriveItem & { score: number };
-export type Result = { q: Query; vozes: Hit[]; cifras: Hit[] };
 
 const KEY_RE = /^[A-G](#|b)?m?$/;
 
@@ -76,8 +74,6 @@ export function rankBy<T extends Rankable>(q: { title: string; key: string; vers
     .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
 }
 
-const rank = (q: Query, items: DriveItem[]): Hit[] => rankBy(q, items);
-
 /** Pastas de vozes e arquivos de cifra do Drive para uma música, melhores primeiro. */
 export function linkHits(title: string, key: string, version: string, items: DriveItem[]) {
   const q = { title, key, version };
@@ -85,24 +81,4 @@ export function linkHits(title: string, key: string, version: string, items: Dri
     vozes: rankBy(q, items.filter((i) => i.kind === "vozes")).slice(0, 5),
     cifras: rankBy(q, items.filter((i) => i.kind === "cifra")).slice(0, 5),
   };
-}
-
-export function findLinks(lines: string, items: DriveItem[]): Result[] {
-  const vozes = items.filter((i) => i.kind === "vozes");
-  const cifras = items.filter((i) => i.kind === "cifra");
-  return lines
-    .split(/\r?\n/)
-    .map(parseQueryLine)
-    .filter((q): q is Query => !!q)
-    .map((q) => ({ q, vozes: rank(q, vozes).slice(0, 4), cifras: rank(q, cifras).slice(0, 4) }));
-}
-
-/** Texto pronto para o WhatsApp, URLs completas em texto puro. */
-export function shareText(results: Result[], pick?: (r: Result) => { v?: Hit; c?: Hit }): string {
-  return results
-    .map((r) => {
-      const { v, c } = pick ? pick(r) : { v: r.vozes[0], c: r.cifras[0] };
-      return [r.q.line, `Vozes: ${v?.url ?? "(não localizado)"}`, `Cifra: ${c?.url ?? "(não localizado)"}`].join("\n");
-    })
-    .join("\n\n");
 }

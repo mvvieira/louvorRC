@@ -122,7 +122,7 @@ export default function Repertoire({ serviceId, items, songs, links, driveReady,
           {filling && <span className="muted">{filling}</span>}
         </div>
       )}
-      {!driveReady && <p className="picker-hint">As pastas do Drive ainda não foram lidas: abra <Link href="/buscar">Buscar links</Link> e toque em “Atualizar do Drive”.</p>}
+      {!driveReady && <p className="picker-hint">As pastas do Drive ainda não foram lidas: abra <Link href="/musicas/importar">Músicas › Importar do Drive</Link> e toque em “Ler o Drive agora”.</p>}
       <ol className="setlist">
         {list.length === 0 && <li className="none">Nenhuma música ainda. Busque abaixo pelo nome ou cole a lista inteira.</li>}
         {list.map((s, i) => {

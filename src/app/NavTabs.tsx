@@ -3,7 +3,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  ["/buscar", "Buscar links"],
   ["/cultos", "Cultos"],
   ["/calendario", "Calendário"],
   ["/escala", "Escala"],
