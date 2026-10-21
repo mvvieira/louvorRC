@@ -207,7 +207,7 @@ export default function Repertoire({ serviceId, items, songs, links, driveReady,
 
       {missing.length > 0 && (
         <div className="missing-box">
-          <span>Não achei no catálogo:</span>
+          <span>Não localizado no catálogo:</span>
           {missing.map((m) => (
             <button type="button" key={m} className="chip miss" onClick={() => create(m)} title="Cadastrar e adicionar">+ {m}</button>
           ))}

@@ -34,7 +34,7 @@ export default function Finder() {
   );
 
   const share = picks
-    .map(({ r, v, c }) => [r.q.line, `Vozes: ${v?.url ?? "(não encontrada)"}`, `Cifra: ${c?.url ?? "(não encontrada)"}`].join("\n"))
+    .map(({ r, v, c }) => [r.q.line, `Vozes: ${v?.url ?? "(não localizado)"}`, `Cifra: ${c?.url ?? "(não localizado)"}`].join("\n"))
     .join("\n\n");
 
   const search = () =>
@@ -105,7 +105,7 @@ export default function Finder() {
                         <div key={k} style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
                           <b style={{ width: 52, fontSize: 14 }}>{k === "v" ? "Vozes" : "Cifra"}</b>
                           {hits.length === 0 ? (
-                            <span className="chip miss">não encontrada no Drive</span>
+                            <span className="chip miss">não localizado</span>
                           ) : (
                             <>
                               <select

@@ -20,7 +20,7 @@ export default function LinkPick({ songId, kind, current, opts }: { songId: numb
       <b>{name}</b>
       {list.length === 0 ? (
         <span className="link-none">
-          <span className="chip miss">não achei no Drive</span>
+          <span className="chip miss">não localizado</span>
           <Link href={`/musicas/${songId}`} className="muted">colar link</Link>
         </span>
       ) : (

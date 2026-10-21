@@ -54,8 +54,8 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
   for (const s of items) {
     const voz = s.version === "MASCULINO" ? " (masculino)" : s.version === "FEMININO" ? " (feminino)" : "";
     L.push("", `🔥 *${s.title.toUpperCase()}${s.song_key ? ` (${s.song_key})` : ""}*${voz}`);
-    L.push(`🎤 Vozes: ${s.vozes_url || "(sem link)"}`);
-    L.push(`🎸 Cifra: ${s.cifra_url || "(sem link)"}`);
+    L.push(`🎤 Vozes: ${s.vozes_url || "(não localizado)"}`);
+    L.push(`🎸 Cifra: ${s.cifra_url || "(não localizado)"}`);
   }
   if (team.length) {
     const byRole = new Map<string, string[]>();

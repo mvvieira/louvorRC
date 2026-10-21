@@ -102,7 +102,7 @@ export function shareText(results: Result[], pick?: (r: Result) => { v?: Hit; c?
   return results
     .map((r) => {
       const { v, c } = pick ? pick(r) : { v: r.vozes[0], c: r.cifras[0] };
-      return [r.q.line, `Vozes: ${v?.url ?? "(não encontrada)"}`, `Cifra: ${c?.url ?? "(não encontrada)"}`].join("\n");
+      return [r.q.line, `Vozes: ${v?.url ?? "(não localizado)"}`, `Cifra: ${c?.url ?? "(não localizado)"}`].join("\n");
     })
     .join("\n\n");
 }

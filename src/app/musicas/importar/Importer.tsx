@@ -130,7 +130,7 @@ export default function Importer({ when, counts, vozes, loose, broken, ignored }
             {broken.map((b) => (
               <li key={`${b.id}${b.kind}`}>
                 <span className="imp-name"><b>{b.title}</b>{b.song_key && <span className="muted"> · {b.song_key}</span>}</span>
-                <span className="chip miss">{b.kind === "vozes" ? "vozes" : "cifra"} não encontrada</span>
+                <span className="chip miss">{b.kind === "vozes" ? "vozes" : "cifra"}: não localizado</span>
                 <Link className="btn small" href={`/musicas/${b.id}`}>Corrigir</Link>
               </li>
             ))}
