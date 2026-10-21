@@ -1,0 +1,282 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { all, one, run, type Song } from "@/lib/db";
+import { cifraHits } from "@/lib/match";
+import { driveItems } from "@/lib/drive";
+import { linkHits, parseQueryLine, rankBy } from "@/lib/finder";
+
+const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
+const num = (f: FormData, k: string) => Number(f.get(k));
+
+/* ---------- Músicas ---------- */
+
+export async function saveSong(f: FormData) {
+  const id = num(f, "id");
+  const args = [
+    str(f, "title"),
+    str(f, "song_key"),
+    str(f, "version").toUpperCase(),
+    str(f, "artist"),
+    str(f, "vozes_url"),
+    str(f, "cifra_url"),
+    str(f, "notes"),
+  ];
+  if (!args[0]) return;
+  if (id) {
+    await run(
+      "UPDATE songs SET title=?, song_key=?, version=?, artist=?, vozes_url=?, cifra_url=?, notes=? WHERE id=?",
+      [...args, id],
+    );
+  } else {
+    await run(
+      "INSERT INTO songs (title, song_key, version, artist, vozes_url, cifra_url, notes) VALUES (?,?,?,?,?,?,?)",
+      args,
+    );
+  }
+  revalidatePath("/", "layout");
+  redirect("/musicas");
+}
+
+export async function deleteSong(f: FormData) {
+  await run("DELETE FROM service_songs WHERE song_id=?", [num(f, "id")]);
+  await run("DELETE FROM songs WHERE id=?", [num(f, "id")]);
+  revalidatePath("/", "layout");
+  redirect("/musicas");
+}
+
+/* ---------- Equipe ---------- */
+
+export async function saveMember(f: FormData) {
+  const id = num(f, "id");
+  const name = str(f, "name");
+  if (!name) return;
+  if (id) {
+    await run("UPDATE members SET name=?, roles=?, phone=? WHERE id=?", [name, str(f, "roles"), str(f, "phone"), id]);
+  } else {
+    await run("INSERT INTO members (name, roles, phone) VALUES (?,?,?)", [name, str(f, "roles"), str(f, "phone")]);
+  }
+  revalidatePath("/", "layout");
+}
+
+export async function deleteMember(f: FormData) {
+  await run("DELETE FROM service_members WHERE member_id=?", [num(f, "id")]);
+  await run("DELETE FROM members WHERE id=?", [num(f, "id")]);
+  revalidatePath("/", "layout");
+}
+
+/* ---------- Cultos ---------- */
+
+export async function createService(f: FormData) {
+  const date = str(f, "date");
+  if (!date) return;
+  const r = await run("INSERT INTO services (date, title) VALUES (?, ?)", [date, str(f, "title") || "Culto"]);
+  const id = Number(r.lastInsertRowid);
+  const list = str(f, "list");
+  if (list) await addSongsFromList(id, list);
+  redirect(`/cultos/${id}`);
+}
+
+export async function updateService(f: FormData) {
+  const id = num(f, "id");
+  const date = str(f, "date");
+  if (!date) return;
+  await run("UPDATE services SET date=?, title=? WHERE id=?", [date, str(f, "title") || "Culto", id]);
+  revalidatePath("/", "layout");
+}
+
+export async function updateServiceNotes(f: FormData) {
+  await run("UPDATE services SET notes=? WHERE id=?", [str(f, "notes"), num(f, "id")]);
+  revalidatePath("/", "layout");
+}
+
+export async function deleteService(f: FormData) {
+  const id = num(f, "id");
+  await run("DELETE FROM service_songs WHERE service_id=?", [id]);
+  await run("DELETE FROM service_members WHERE service_id=?", [id]);
+  await run("DELETE FROM services WHERE id=?", [id]);
+  revalidatePath("/", "layout");
+  redirect("/cultos");
+}
+
+async function nextPosition(serviceId: number) {
+  const r = await one<{ p: number | null }>("SELECT MAX(position) AS p FROM service_songs WHERE service_id=?", [serviceId]);
+  return Number(r?.p ?? 0) + 1;
+}
+
+/** Recebe uma lista colada (uma música por linha, aceita "✅ Gratidão Db (Giovanni)") e casa com o catálogo. */
+async function addSongsFromList(serviceId: number, list: string, noteMissing = true): Promise<string[]> {
+  const songs = await all<Song>("SELECT * FROM songs");
+  let pos = await nextPosition(serviceId);
+  const missing: string[] = [];
+  for (const line of list.split(/\r?\n/)) {
+    const q = parseQueryLine(line);
+    if (!q) continue;
+    const [best] = rankBy(q, songs);
+    if (best && best.score >= 60) {
+      await run("INSERT INTO service_songs (service_id, song_id, position) VALUES (?,?,?)", [serviceId, best.id, pos++]);
+    } else missing.push([q.title, q.key, q.version === "FEMININO" ? "Fem" : q.version === "MASCULINO" ? "Masc" : ""].filter(Boolean).join(" "));
+  }
+  if (missing.length && noteMissing) {
+    await run("UPDATE services SET notes = TRIM(notes || ?, char(10) || ' ') WHERE id=?", [
+      `\nNão encontradas no catálogo: ${missing.join("; ")}`,
+      serviceId,
+    ]);
+  }
+  return missing;
+}
+
+export async function addServiceMember(f: FormData) {
+  const id = num(f, "service_id");
+  const memberId = num(f, "member_id");
+  if (!memberId) return;
+  await run("INSERT INTO service_members (service_id, member_id, role) VALUES (?,?,?)", [id, memberId, str(f, "role")]);
+  revalidatePath("/", "layout");
+}
+
+export async function removeServiceMember(f: FormData) {
+  await run("DELETE FROM service_members WHERE id=?", [num(f, "id")]);
+  revalidatePath("/", "layout");
+}
+
+/** Troca a pessoa de uma posição da escala; sem pessoa, tira a posição. */
+export async function setServiceMember(f: FormData) {
+  const id = num(f, "id");
+  const memberId = num(f, "member_id");
+  if (memberId) await run("UPDATE service_members SET member_id=? WHERE id=?", [memberId, id]);
+  else await run("DELETE FROM service_members WHERE id=?", [id]);
+  revalidatePath("/", "layout");
+}
+
+/* ---------- Repertório (editor do culto) ---------- */
+
+/** Adiciona uma música ao fim do repertório e devolve o id da linha. */
+export async function addSongToService(serviceId: number, songId: number): Promise<number> {
+  const r = await run("INSERT INTO service_songs (service_id, song_id, position) VALUES (?,?,?)", [
+    serviceId, songId, await nextPosition(serviceId),
+  ]);
+  revalidatePath("/", "layout");
+  return Number(r.lastInsertRowid);
+}
+
+/** Cadastra uma música nova no catálogo e já põe no repertório. Tom/versão vêm do texto; links, do Drive. */
+export async function createSongForService(serviceId: number, title: string): Promise<number> {
+  const q = parseQueryLine(title);
+  if (!q) return 0;
+  const hits = linkHits(q.title, q.key, q.version, await driveItems());
+  const v = hits.vozes[0]?.score >= 70 ? hits.vozes[0] : undefined;
+  const c = hits.cifras[0]?.score >= 70 ? hits.cifras[0] : undefined;
+  const r = await run("INSERT INTO songs (title, song_key, version, vozes_url, cifra_url) VALUES (?,?,?,?,?)", [
+    q.title, q.key || v?.song_key || "", q.version || v?.version || "", v?.url ?? "", c?.url ?? "",
+  ]);
+  return addSongToService(serviceId, Number(r.lastInsertRowid));
+}
+
+export async function removeServiceSongItem(id: number) {
+  await run("DELETE FROM service_songs WHERE id=?", [id]);
+  revalidatePath("/", "layout");
+}
+
+/** Grava a ordem do repertório a partir da lista de ids na ordem nova. */
+export async function reorderServiceSongs(serviceId: number, ids: number[]) {
+  for (let k = 0; k < ids.length; k++) {
+    await run("UPDATE service_songs SET position=? WHERE id=? AND service_id=?", [k + 1, ids[k], serviceId]);
+  }
+  revalidatePath("/", "layout");
+}
+
+/** Lista colada: adiciona o que achar no catálogo e devolve o que não achou. */
+export async function pasteSongList(serviceId: number, list: string): Promise<string[]> {
+  const missing = await addSongsFromList(serviceId, list, false);
+  revalidatePath("/", "layout");
+  return missing;
+}
+
+/* ---------- Cifras sugeridas do Drive ---------- */
+
+export type CifraSuggestion = { url: string; name: string; score: number; keyOk: boolean | null };
+
+/** Arquivos de cifra do Drive com nome parecido com a música. */
+export async function suggestCifras(songId: number): Promise<CifraSuggestion[]> {
+  const song = await one<Song>("SELECT * FROM songs WHERE id=?", [songId]);
+  if (!song) return [];
+  const cifras = (await driveItems()).filter((i) => i.kind === "cifra");
+  return cifraHits(song.title, song.song_key, cifras)
+    .slice(0, 5)
+    .map(({ url, name, score, keyOk }) => ({ url, name, score, keyOk }));
+}
+
+export async function setSongCifra(songId: number, url: string) {
+  await run("UPDATE songs SET cifra_url=? WHERE id=?", [url, songId]);
+  revalidatePath("/", "layout");
+}
+
+/* ---------- Links do Drive no repertório ---------- */
+
+/** Troca a pasta de vozes ou a cifra de uma música (vale para o catálogo todo). Tom/versão vazios vêm da pasta. */
+export async function setSongLink(songId: number, kind: "vozes" | "cifra", url: string) {
+  const col = kind === "vozes" ? "vozes_url" : "cifra_url";
+  await run(`UPDATE songs SET ${col}=? WHERE id=?`, [url, songId]);
+  if (kind === "vozes" && url) {
+    const it = await one<{ song_key: string; version: string }>("SELECT song_key, version FROM drive_items WHERE url=?", [url]);
+    if (it) {
+      await run(
+        "UPDATE songs SET song_key = CASE WHEN song_key='' THEN ? ELSE song_key END, version = CASE WHEN version='' THEN ? ELSE version END WHERE id=?",
+        [it.song_key, it.version, songId],
+      );
+    }
+  }
+  revalidatePath("/", "layout");
+}
+
+/** Preenche de uma vez os links que faltam no repertório com o melhor resultado do Drive. Devolve quantos ligou. */
+export async function fillServiceLinks(serviceId: number): Promise<number> {
+  const songs = await all<Song>(
+    "SELECT s.* FROM service_songs ss JOIN songs s ON s.id=ss.song_id WHERE ss.service_id=?",
+    [serviceId],
+  );
+  const items = await driveItems();
+  let n = 0;
+  for (const s of songs) {
+    if (s.vozes_url && s.cifra_url) continue;
+    const h = linkHits(s.title, s.song_key, s.version, items);
+    // tom diferente fica para alguém escolher na lista
+    const ok = (x?: { song_key: string }) => x && (!s.song_key || !x.song_key || x.song_key.toLowerCase() === s.song_key.toLowerCase());
+    const v = h.vozes[0], c = h.cifras[0];
+    if (!s.vozes_url && ok(v)) { await setSongLink(s.id, "vozes", v.url); n++; }
+    if (!s.cifra_url && ok(c)) { await setSongLink(s.id, "cifra", c.url); n++; }
+  }
+  revalidatePath("/", "layout");
+  return n;
+}
+
+/* ---------- Disponibilidade ---------- */
+
+/** 1 = disponível, 0 = indisponível, null = apaga a resposta. */
+export async function setAvailability(memberId: number, serviceId: number, available: 0 | 1 | null) {
+  if (available === null) {
+    await run("DELETE FROM availability WHERE member_id=? AND service_id=?", [memberId, serviceId]);
+  } else {
+    await run(
+      `INSERT INTO availability (member_id, service_id, available) VALUES (?,?,?)
+       ON CONFLICT(member_id, service_id) DO UPDATE SET available=excluded.available, updated_at=datetime('now')`,
+      [memberId, serviceId, available],
+    );
+  }
+  revalidatePath("/", "layout");
+}
+
+/** Marca (ou limpa) de uma vez os cultos ainda por vir do mês "AAAA-MM". */
+export async function setMonthAvailability(memberId: number, month: string, available: 0 | 1 | null, from: string) {
+  const cs = await all<{ id: number }>("SELECT id FROM services WHERE date LIKE ? AND date >= ?", [`${month}-%`, from]);
+  for (const c of cs) {
+    if (available === null) await run("DELETE FROM availability WHERE member_id=? AND service_id=?", [memberId, c.id]);
+    else await run(
+      `INSERT INTO availability (member_id, service_id, available) VALUES (?,?,?)
+       ON CONFLICT(member_id, service_id) DO UPDATE SET available=excluded.available, updated_at=datetime('now')`,
+      [memberId, c.id, available],
+    );
+  }
+  revalidatePath("/", "layout");
+}

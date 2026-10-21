@@ -1,0 +1,39 @@
+import { all, type Member } from "@/lib/db";
+import { ddmm, today } from "@/lib/format";
+import { FUNCOES } from "@/lib/roles";
+import { deleteMember, saveMember } from "../actions";
+import MemberCard from "./MemberCard";
+
+export const dynamic = "force-dynamic";
+
+export default async function Equipe() {
+  const members = await all<Member>("SELECT * FROM members ORDER BY name");
+  const upcoming = await all<{ member_id: number; date: string; role: string }>(
+    `SELECT sm.member_id, s.date, sm.role FROM service_members sm JOIN services s ON s.id=sm.service_id
+     WHERE s.date >= ? ORDER BY s.date`,
+    [today()],
+  );
+  const meta = (id: number) => {
+    const mine = upcoming.filter((u) => Number(u.member_id) === id);
+    return mine.length
+      ? "Próximas escalas: " + mine.map((u) => `${ddmm(u.date)}${u.role ? " " + u.role : ""}`).join(" · ")
+      : "Sem escala nos próximos cultos";
+  };
+  return (
+    <>
+      <form action={saveMember} className="tools">
+        <input type="text" name="name" placeholder="Nome de quem entra na equipe" aria-label="Nome" required style={{ flex: "0 1 280px" }} />
+        <button className="btn primary">Adicionar integrante</button>
+        <span className="count">{members.length} integrante{members.length === 1 ? "" : "s"}</span>
+      </form>
+      <div className="team">
+        {members.map((m) => (
+          <MemberCard key={m.id} member={m} funcoes={FUNCOES} meta={meta(Number(m.id))} save={saveMember} remove={deleteMember} />
+        ))}
+      </div>
+      {members.length === 0 && (
+        <p className="muted">Cadastre quem serve no louvor e marque as funções de cada um. A escala dos cultos sugere as funções a partir daqui.</p>
+      )}
+    </>
+  );
+}
