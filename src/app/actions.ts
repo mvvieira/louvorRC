@@ -125,7 +125,7 @@ async function addSongsFromList(serviceId: number, list: string, noteMissing = t
   }
   if (missing.length && noteMissing) {
     await run("UPDATE services SET notes = TRIM(notes || ?, char(10) || ' ') WHERE id=?", [
-      `\nNão encontradas no catálogo: ${missing.join("; ")}`,
+      `\nNão localizadas no catálogo: ${missing.join("; ")}`,
       serviceId,
     ]);
   }
