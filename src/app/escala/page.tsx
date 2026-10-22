@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 type Slot = { id: number; service_id: number; member_id: number; role: string; name: string };
 
-export default async function Escala({ searchParams }: { searchParams: Promise<{ m?: string; p?: string; edit?: string }> }) {
+export default async function Escala({ searchParams }: { searchParams: Promise<{ m?: string; p?: string; edit?: string; done?: string }> }) {
   const sp = await searchParams;
   const t = today();
   const month = /^\d{4}-\d{2}$/.test(sp.m ?? "") ? sp.m! : t.slice(0, 7);
@@ -66,10 +66,15 @@ export default async function Escala({ searchParams }: { searchParams: Promise<{
         </div>
         <WhoSelect edit={edit} month={month} value={me ? String(me) : ""} people={people.map((p) => ({ id: Number(p.id), name: p.name }))} />
         <Link className={`btn${edit ? " primary" : ""}`} href={editHref}>{edit ? "Concluir edição" : "Editar escala"}</Link>
+        <Link className="btn" href={`/escala/distribuir?m=${month}`}>Distribuir automaticamente</Link>
         <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <CopyButton text={L.join("\n")} label="Copiar escala do mês" done="Escala copiada" className="btn" />
         </span>
       </div>
+
+      {sp.done !== undefined && (
+        <p className="edit-hint">✓ {sp.done} pessoa{sp.done === "1" ? "" : "s"} lançada{sp.done === "1" ? "" : "s"} na escala pela distribuição automática. Para trocar alguém, use “Editar escala”.</p>
+      )}
 
       {person && (
         <div className="who-sum">

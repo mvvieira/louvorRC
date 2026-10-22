@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { all, one, run, type Song } from "@/lib/db";
+import { all, db, one, run, type Song } from "@/lib/db";
 import { cifraHits } from "@/lib/match";
 import { driveItems } from "@/lib/drive";
 import { linkHits, parseQueryLine, rankBy } from "@/lib/finder";
@@ -289,4 +289,21 @@ export async function setMonthAvailability(memberId: number, month: string, avai
     );
   }
   revalidatePath("/", "layout");
+}
+
+/* ---------- Distribuição automática da escala ---------- */
+
+/** Lança na escala as posições revisadas na página Distribuir (não repete pessoa no mesmo culto). */
+export async function applyDistribution(month: string, picks: { service_id: number; member_id: number; role: string }[]) {
+  const c = await db();
+  const res = await c.batch(
+    picks.map((p) => ({
+      sql: `INSERT INTO service_members (service_id, member_id, role)
+            SELECT ?,?,? WHERE NOT EXISTS (SELECT 1 FROM service_members WHERE service_id=? AND member_id=?)`,
+      args: [p.service_id, p.member_id, p.role, p.service_id, p.member_id],
+    })),
+    "write",
+  );
+  revalidatePath("/", "layout");
+  redirect(`/escala?m=${month}&done=${res.reduce((n, r) => n + r.rowsAffected, 0)}`);
 }

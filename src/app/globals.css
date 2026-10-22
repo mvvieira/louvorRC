@@ -364,3 +364,32 @@ h3 { text-transform: uppercase; letter-spacing: .02em; }
   .imp-acts { grid-column: 1; justify-content: flex-start; }
 }
 .twin-note { font-size: 14px; color: var(--ink-2); margin: -4px 0 10px; padding: 6px 10px; border-radius: 10px; background: var(--field); border: 1px dashed var(--line); }
+
+/* Distribuição automática da escala */
+.dist-bar { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.dist-bar .muted { margin-right: auto; font-size: 14px; }
+.dist-opt { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+.dist-model { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; }
+.dist-model summary { cursor: pointer; font-weight: 700; }
+.dist-model summary .muted { font-weight: 400; font-size: 13px; }
+.dist-tpl { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--line); margin-top: 10px; }
+.dist-steps { display: flex; flex-wrap: wrap; gap: 6px; }
+.dist-step { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; border: 1px solid var(--line); border-radius: 999px; padding: 2px 4px 2px 10px; }
+.dist-step.zero { opacity: .5; }
+.dist-step b { min-width: 1.2em; text-align: center; }
+.dist-step button { width: 24px; height: 24px; border-radius: 999px; border: 1px solid var(--line); background: var(--sky); color: var(--ink); cursor: pointer; line-height: 1; }
+.dist-sum { font-size: 15px; margin-bottom: 10px; }
+.dist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.dcard { background: var(--paper); border: 1px solid var(--line); border-left: 5px solid var(--tc); border-radius: 12px; padding: 10px 14px; }
+.dcard.off { opacity: .5; }
+.dcard-h { display: flex; gap: 8px; align-items: center; font-size: 15px; cursor: pointer; }
+.dcard dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 8px 0 0; font-size: 14px; }
+.dcard dt { color: var(--ink-2); }
+.dcard dd { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.dcard .was { color: var(--ink-2); }
+.dcard .new { font-weight: 700; color: var(--flame); }
+.dcard .new.maybe { color: var(--warn); }
+.dcard .gap { color: var(--warn); border: 1px dashed var(--warn); border-radius: 999px; padding: 0 8px; font-size: 12px; }
+.dist-load { margin-top: 18px; }
+.dist-load p { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.dist-go { position: sticky; bottom: 0; background: var(--sky); padding: 12px 0; margin-top: 10px; border-top: 1px solid var(--line); }
