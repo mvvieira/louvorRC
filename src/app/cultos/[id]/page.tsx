@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { all, one, type Member, type Service, type Song } from "@/lib/db";
-import { dayName, ddmm } from "@/lib/format";
+import { dayName, ddmm, today } from "@/lib/format";
+import { monthData } from "@/lib/distribute-data";
 import { FUNCOES, splitRoles } from "@/lib/roles";
 import { driveItems } from "@/lib/drive";
 import { linkHits } from "@/lib/finder";
@@ -11,6 +12,7 @@ import {
 } from "../../actions";
 import SlotSelect, { type SlotPerson } from "../../SlotSelect";
 import AddSlot from "../AddSlot";
+import AutoEscala from "../AutoEscala";
 import AutoForm from "../../AutoForm";
 import CopyButton from "../../CopyButton";
 import ConfirmButton from "../../ConfirmButton";
@@ -70,6 +72,8 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
   const awayTeam = team.filter((t) => away.includes(Number(t.member_id)));
   const roleOrder = (r: string) => (FUNCOES.indexOf(r) < 0 ? 99 : FUNCOES.indexOf(r));
   team.sort((a, b) => roleOrder(a.role) - roleOrder(b.role) || a.sm_id - b.sm_id);
+  const month = service.date.slice(0, 7);
+  const auto = service.date >= today() ? await monthData(month) : null;
   const roleOptions = [...new Set([...FUNCOES, ...members.flatMap((m) => splitRoles(m.roles))])];
 
   return (
@@ -94,6 +98,7 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
 
       <div className="sec">
         <h3>Escala</h3>
+        {auto && <AutoEscala key={team.map((t) => t.sm_id).join()} serviceId={id} month={month} {...auto} />}
         {awayTeam.length > 0 && (
           <p className="notes" style={{ marginBottom: 10 }}>
             ⚠ {awayTeam.map((t) => `${t.name} (${t.role})`).join(", ")} marcou que não pode neste culto. Troque na lista abaixo.

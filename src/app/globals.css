@@ -395,3 +395,11 @@ h3 { text-transform: uppercase; letter-spacing: .02em; }
 .dist-go { position: sticky; bottom: 0; background: var(--sky); padding: 12px 0; margin-top: 10px; border-top: 1px solid var(--line); }
 .dcard.done { opacity: .7; }
 .dcard-note { margin: 4px 0 0; font-size: 12px; }
+
+/* Distribuir escala na página do culto */
+.auto-btn { margin-bottom: 12px; }
+.auto-esc { background: var(--paper); border: 1px solid var(--line); border-left: 4px solid var(--flame); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; display: grid; gap: 10px; }
+.auto-info { margin: 0; font-size: 14px; }
+.auto-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.auto-list li { display: grid; grid-template-columns: 110px auto 1fr; gap: 10px; align-items: baseline; font-size: 15px; }
+.auto-list .muted { font-size: 12px; }

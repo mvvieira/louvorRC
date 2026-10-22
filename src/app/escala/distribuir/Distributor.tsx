@@ -8,10 +8,12 @@ import { applyDistribution } from "../../actions";
 const byFuncao = (a: string, b: string) => (FUNCOES.indexOf(a) + 1 || 99) - (FUNCOES.indexOf(b) + 1 || 99);
 
 /** Proposta de escala do mês: revisa, sorteia de novo, ajusta o modelo e só então lança. */
-export default function Distributor({ month, services, people, existing, avail, template: learned, answered }: {
-  month: string; services: DService[]; people: DPerson[]; existing: DSlot[];
+export default function Distributor({ month, services: all, targets, people, existing, avail, template: learned, answered }: {
+  month: string; services: DService[]; targets: number[]; people: DPerson[]; existing: DSlot[];
   avail: Avail; template: Template; answered: number;
 }) {
+  // mostra só os cultos por vir; os do mês que já passaram contam para dividir por igual
+  const services = all.filter((s) => targets.includes(s.id));
   const [seed, setSeed] = useState(1);
   // enquanto menos da metade respondeu, completa com quem não respondeu (marcado com ?)
   const [useNoAnswer, setUseNoAnswer] = useState(answered < people.length / 2);
@@ -19,15 +21,14 @@ export default function Distributor({ month, services, people, existing, avail, 
   const [skip, setSkip] = useState<Set<number>>(new Set());
   const [pending, start] = useTransition();
 
-  const active = services.filter((s) => !skip.has(s.id));
   const { picks, gaps, load } = useMemo(
-    () => distribute({ services: active, people, existing, avail, template, seed, useNoAnswer }),
-    [skip, people, existing, avail, template, seed, useNoAnswer],
+    () => distribute({ services: all, targets: targets.filter((id) => !skip.has(id)), people, existing, avail, template, seed, useNoAnswer }),
+    [all, targets, skip, people, existing, avail, template, seed, useNoAnswer],
   );
   const name = new Map(people.map((p) => [p.id, p.name]));
   const maybe = picks.filter((p) => p.maybe).length;
   const missing = gaps.reduce((n, g) => n + g.missing, 0);
-  const ready = new Set(existing.map((e) => e.service_id));
+  const ready = new Set(existing.map((e) => e.service_id).filter((id) => targets.includes(id)));
   const titles = [...new Set(services.filter((s) => !ready.has(s.id)).map((s) => s.title))];
   const roleName = (r: string) => (r === INSTRUMENTO ? `Instrumento (${INSTRUMENTOS.join(", ").toLowerCase()})` : r);
   const ranking = people.filter((p) => load.get(p.id)).sort((a, b) => (load.get(b.id) ?? 0) - (load.get(a.id) ?? 0) || a.name.localeCompare(b.name));

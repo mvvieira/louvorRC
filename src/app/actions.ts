@@ -294,7 +294,7 @@ export async function setMonthAvailability(memberId: number, month: string, avai
 /* ---------- Distribuição automática da escala ---------- */
 
 /** Lança na escala as posições revisadas na página Distribuir (não repete pessoa no mesmo culto). */
-export async function applyDistribution(month: string, picks: { service_id: number; member_id: number; role: string }[]) {
+export async function applyDistribution(month: string, picks: { service_id: number; member_id: number; role: string }[], stay = false) {
   const c = await db();
   const res = await c.batch(
     picks.map((p) => ({
@@ -305,5 +305,6 @@ export async function applyDistribution(month: string, picks: { service_id: numb
     "write",
   );
   revalidatePath("/", "layout");
+  if (stay) return; // na página do culto a escala atualiza no lugar
   redirect(`/escala?m=${month}&done=${res.reduce((n, r) => n + r.rowsAffected, 0)}`);
 }

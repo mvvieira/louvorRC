@@ -65,12 +65,14 @@ const dayDiff = (a: string, b: string) => Math.abs(Date.parse(a) - Date.parse(b)
 /**
  * Preenche, culto a culto em ordem de data, os cultos que ainda não têm ninguém na escala.
  * Cultos com escala já lançada (`existing`) não são mexidos, mas contam para dividir por igual.
+ * `targets` limita os cultos a preencher (os demais só contam); com `complete`, um culto já
+ * começado tem só as vagas que faltam completadas, sem trocar quem já está.
  * Nunca usa quem marcou "não posso"; quem não respondeu só entra com `useNoAnswer` e fica marcado.
  * Escolhe quem tem menos escalas no mês, evitando o mesmo dia e dias seguidos.
  */
-export function distribute({ services, people, existing, avail, template, seed, useNoAnswer }: {
+export function distribute({ services, people, existing, avail, template, seed, useNoAnswer, targets, complete }: {
   services: DService[]; people: DPerson[]; existing: DSlot[]; avail: Avail;
-  template: Template; seed: number; useNoAnswer: boolean;
+  template: Template; seed: number; useNoAnswer: boolean; targets?: number[]; complete?: boolean;
 }): { picks: DPick[]; gaps: Gap[]; load: Map<number, number> } {
   const load = new Map<number, number>();
   const dates = new Map<number, string[]>();
@@ -85,14 +87,16 @@ export function distribute({ services, people, existing, avail, template, seed, 
   const gaps: Gap[] = [];
   const ready = new Set(existing.map((e) => e.service_id));
   for (const s of [...services].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)) {
-    if (ready.has(s.id)) continue;
-    const busy = new Set<number>();
+    if (targets && !targets.includes(s.id)) continue;
+    if (ready.has(s.id) && !complete) continue;
+    const here = existing.filter((e) => e.service_id === s.id);
+    const busy = new Set(here.map((e) => e.member_id));
     const ok = (p: DPerson) => {
       const a = avail[`${p.id}:${s.id}`];
       return a === 1 || (a === undefined && useNoAnswer);
     };
     const need = Object.entries(template[s.title] ?? {})
-      .map(([role, n]) => ({ role, n }))
+      .map(([role, n]) => ({ role, n: n - here.filter((e) => (role === INSTRUMENTO ? INSTRUMENTOS.includes(e.role) : e.role === role)).length }))
       .filter((x) => x.n > 0)
       // função com menos gente disponível escolhe primeiro
       .map((x) => ({ ...x, pool: people.filter((p) => plays(p, x.role) && ok(p)).length }))
