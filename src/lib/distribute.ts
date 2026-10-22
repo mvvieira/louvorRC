@@ -13,10 +13,27 @@ export type Avail = Record<string, 0 | 1>;
 export type DPick = DSlot & { maybe: boolean };
 export type Gap = { service_id: number; role: string; missing: number };
 
-/** Modelo de cada culto: a quantidade mais comum de cada função nas últimas escalas com o mesmo nome (ou do mesmo tipo). */
-export function learnTemplate(titles: string[], history: (DService & { roles: string[] })[]): Template {
+/** Vaga coringa: qualquer um destes instrumentos serve (Intercessão = ministro + um instrumento). */
+export const INSTRUMENTO = "Instrumento";
+export const INSTRUMENTOS = ["Teclado", "Violão", "Guitarra"];
+
+/** Domingo e Quinta: banda completa. */
+const BANDA = { Ministro: 2, Soprano: 1, Contralto: 1, Tenor: 1, Teclado: 1, Guitarra: 1, Violão: 1, Baixo: 1, Bateria: 1 };
+const FIXOS: Record<string, Record<string, number>> = { dom: BANDA, qui: BANDA, int: { Ministro: 1, [INSTRUMENTO]: 1 } };
+
+/** A pessoa faz a função (a vaga "Instrumento" aceita qualquer um dos INSTRUMENTOS). */
+export const plays = (p: DPerson, role: string) =>
+  role === INSTRUMENTO ? p.roles.some((r) => INSTRUMENTOS.includes(r)) : p.roles.includes(role);
+
+/**
+ * Modelo de cada culto: fixo para Domingo, Quinta e Intercessão; para os demais,
+ * a quantidade mais comum de cada função nas últimas escalas com o mesmo nome (ou do mesmo tipo).
+ */
+export function buildTemplate(titles: string[], history: (DService & { roles: string[] })[]): Template {
   const out: Template = {};
   for (const title of titles) {
+    const fixo = FIXOS[serviceType(title)[0]];
+    if (fixo) { out[title] = { ...fixo }; continue; }
     let past = history.filter((h) => h.title === title);
     if (!past.length) past = history.filter((h) => serviceType(h.title)[0] === serviceType(title)[0]);
     past = past.slice(-6);
@@ -46,7 +63,8 @@ function rnd(...xs: number[]): number {
 const dayDiff = (a: string, b: string) => Math.abs(Date.parse(a) - Date.parse(b)) / 86400000;
 
 /**
- * Preenche as vagas que faltam (modelo − quem já está escalado) culto a culto, em ordem de data.
+ * Preenche, culto a culto em ordem de data, os cultos que ainda não têm ninguém na escala.
+ * Cultos com escala já lançada (`existing`) não são mexidos, mas contam para dividir por igual.
  * Nunca usa quem marcou "não posso"; quem não respondeu só entra com `useNoAnswer` e fica marcado.
  * Escolhe quem tem menos escalas no mês, evitando o mesmo dia e dias seguidos.
  */
@@ -65,22 +83,24 @@ export function distribute({ services, people, existing, avail, template, seed, 
 
   const picks: DPick[] = [];
   const gaps: Gap[] = [];
+  const ready = new Set(existing.map((e) => e.service_id));
   for (const s of [...services].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)) {
-    const busy = new Set(existing.filter((e) => e.service_id === s.id).map((e) => e.member_id));
+    if (ready.has(s.id)) continue;
+    const busy = new Set<number>();
     const ok = (p: DPerson) => {
       const a = avail[`${p.id}:${s.id}`];
       return a === 1 || (a === undefined && useNoAnswer);
     };
     const need = Object.entries(template[s.title] ?? {})
-      .map(([role, n]) => ({ role, n: n - existing.filter((e) => e.service_id === s.id && (e.role || "Equipe") === role).length }))
+      .map(([role, n]) => ({ role, n }))
       .filter((x) => x.n > 0)
       // função com menos gente disponível escolhe primeiro
-      .map((x) => ({ ...x, pool: people.filter((p) => p.roles.includes(x.role) && ok(p)).length }))
+      .map((x) => ({ ...x, pool: people.filter((p) => plays(p, x.role) && ok(p)).length }))
       .sort((a, b) => a.pool - b.pool || FUNCOES.indexOf(a.role) - FUNCOES.indexOf(b.role));
 
     for (const { role, n } of need) {
       for (let k = 0; k < n; k++) {
-        const cands = people.filter((p) => p.roles.includes(role) && !busy.has(p.id) && ok(p));
+        const cands = people.filter((p) => plays(p, role) && !busy.has(p.id) && ok(p));
         if (!cands.length) {
           const g = gaps.find((x) => x.service_id === s.id && x.role === role);
           if (g) g.missing++; else gaps.push({ service_id: s.id, role, missing: 1 });
@@ -97,7 +117,8 @@ export function distribute({ services, people, existing, avail, template, seed, 
         const best = cands.reduce((a, b) => (cost(b) < cost(a) ? b : a));
         busy.add(best.id);
         serve(best.id, s.date);
-        picks.push({ service_id: s.id, member_id: best.id, role, maybe: avail[`${best.id}:${s.id}`] !== 1 });
+        const as = role === INSTRUMENTO ? INSTRUMENTOS.find((r) => best.roles.includes(r))! : role;
+        picks.push({ service_id: s.id, member_id: best.id, role: as, maybe: avail[`${best.id}:${s.id}`] !== 1 });
       }
     }
   }

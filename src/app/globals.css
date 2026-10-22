@@ -393,3 +393,5 @@ h3 { text-transform: uppercase; letter-spacing: .02em; }
 .dist-load { margin-top: 18px; }
 .dist-load p { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .dist-go { position: sticky; bottom: 0; background: var(--sky); padding: 12px 0; margin-top: 10px; border-top: 1px solid var(--line); }
+.dcard.done { opacity: .7; }
+.dcard-note { margin: 4px 0 0; font-size: 12px; }

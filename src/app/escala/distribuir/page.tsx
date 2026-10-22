@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { all, type Member, type Service } from "@/lib/db";
-import { learnTemplate, type Avail, type DSlot } from "@/lib/distribute";
+import { buildTemplate, type Avail, type DSlot } from "@/lib/distribute";
 import { MESES, shiftMonth as shift, today } from "@/lib/format";
 import { splitRoles } from "@/lib/roles";
 import Distributor from "./Distributor";
@@ -33,7 +33,7 @@ export default async function Distribuir({ searchParams }: { searchParams: Promi
      WHERE s.date < ? GROUP BY s.id ORDER BY s.date, s.id`,
     [`${month}-01`],
   );
-  const template = learnTemplate([...new Set(cs.map((c) => c.title))], hist.map((h) => ({ ...h, id: Number(h.id), roles: String(h.roles).split("|") })));
+  const template = buildTemplate([...new Set(cs.map((c) => c.title))], hist.map((h) => ({ ...h, id: Number(h.id), roles: String(h.roles).split("|") })));
   const answered = new Set(Object.keys(avail).map((k) => k.split(":")[0])).size;
 
   return (
