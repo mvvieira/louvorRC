@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ACCESS_NAME, currentUser } from "@/lib/auth";
+import { logout } from "./actions";
 import NavTabs from "./NavTabs";
 import "./globals.css";
 
@@ -25,7 +27,8 @@ function Logo() {
   );
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const me = await currentUser();
   return (
     <html lang="pt-BR">
       <head>
@@ -43,9 +46,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Logo />
               <h1><small>LOUVOR</small>Rasgando os Céus</h1>
             </Link>
-            <NavTabs />
+            {me && <NavTabs lider={me.access === "lider"} />}
           </div>
         </header>
+        {me && (
+          <div className="wrap me-bar">
+            <span><b>{me.name}</b> · {ACCESS_NAME[me.access]}</span>
+            <form action={logout}><button className="btn ghost small">Sair</button></form>
+          </div>
+        )}
         <main className="wrap">{children}</main>
         <footer className="site-foot">
           <span className="irc" aria-hidden="true"><i>I</i><i>R</i><i>C</i></span>

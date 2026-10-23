@@ -20,8 +20,10 @@ const vc = (v: string) => (v === "MASCULINO" ? "m" : v === "FEMININO" ? "f" : ""
 let tempId = -1;
 
 /** Repertório do culto: busca, colar lista, arrastar para reordenar. Tudo aparece na hora e salva em seguida. */
-export default function Repertoire({ serviceId, items, songs, links, driveReady, twins = [] }: {
+export default function Repertoire({ serviceId, items, songs, links, driveReady, twins = [], readOnly }: {
   serviceId: number; items: RepItem[]; songs: RepSong[]; links: Record<number, SongLinks>; driveReady: boolean;
+  /** banda: só consulta (abre vozes e cifra) */
+  readOnly?: boolean;
   /** cultos do mesmo domingo que cantam este mesmo repertório */
   twins?: { id: number; title: string }[];
 }) {
@@ -101,6 +103,31 @@ export default function Repertoire({ serviceId, items, songs, links, driveReady,
     });
   };
   const choose = (i: number) => (i < results.length ? add(results[i]) : canCreate && create(q.trim()));
+
+  if (readOnly) {
+    return (
+      <>
+        <h3>Repertório <small>{list.length} música{list.length === 1 ? "" : "s"}</small></h3>
+        <ol className="setlist">
+          {list.length === 0 && <li className="none">Repertório ainda não montado.</li>}
+          {list.map((s, i) => (
+            <li key={s.ss_id} className="set ro">
+              <span className="n">{i + 1}</span>
+              <div>
+                <div className="name">{s.title}</div>
+                <div className="links-state">
+                  {s.song_key && <span className={`chip ${vc(s.version)}`}>{s.song_key}</span>}
+                  {s.version && <span className={`chip ${vc(s.version)}`}>{s.version === "MASCULINO" ? "Masc" : "Fem"}</span>}
+                  {s.vozes_url ? <a className="chip ok" href={s.vozes_url} target="_blank" rel="noopener">🎤 vozes</a> : <span className="chip miss">vozes: não localizado</span>}
+                  {s.cifra_url ? <a className="chip ok" href={s.cifra_url} target="_blank" rel="noopener">🎸 cifra</a> : <span className="chip miss">cifra: não localizado</span>}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </>
+    );
+  }
 
   return (
     <>

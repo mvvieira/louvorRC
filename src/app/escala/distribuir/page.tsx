@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { pageUser } from "@/lib/auth";
 import { monthData } from "@/lib/distribute-data";
 import { MESES, shiftMonth as shift, today } from "@/lib/format";
 import Distributor from "./Distributor";
@@ -6,6 +7,7 @@ import Distributor from "./Distributor";
 export const dynamic = "force-dynamic";
 
 export default async function Distribuir({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
+  await pageUser("lider");
   const sp = await searchParams;
   const t = today();
   const month = /^\d{4}-\d{2}$/.test(sp.m ?? "") ? sp.m! : shift(t.slice(0, 7), 1);

@@ -1,7 +1,6 @@
 "use client";
-import { useEffect, useOptimistic, useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import { setAvailability, setMonthAvailability } from "../actions";
-import { ME_KEY } from "./PickPerson";
 
 export type AvailItem = {
   id: number; date: string; title: string; kind: string;
@@ -27,10 +26,6 @@ export default function AvailCalendar({ memberId, name, month, mes, today, days,
     cur.map((x) => ("all" in op ? (x.past ? x : { ...x, state: op.all }) : x.id === op.id ? { ...x, state: op.state } : x)),
   );
   const [pending, start] = useTransition();
-
-  useEffect(() => {
-    try { localStorage.setItem(ME_KEY, String(memberId)); } catch { /* sem armazenamento */ }
-  }, [memberId]);
 
   const toggle = (it: AvailItem) => {
     if (it.past) return;

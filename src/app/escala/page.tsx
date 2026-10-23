@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { pageUser } from "@/lib/auth";
 import { all, type Member, type Service } from "@/lib/db";
 import { dayName, ddmm, MESES, shiftMonth as shift, today } from "@/lib/format";
 import { FUNCOES, serviceType } from "@/lib/roles";
@@ -13,11 +14,13 @@ export const dynamic = "force-dynamic";
 type Slot = { id: number; service_id: number; member_id: number; role: string; name: string };
 
 export default async function Escala({ searchParams }: { searchParams: Promise<{ m?: string; p?: string; edit?: string; done?: string }> }) {
+  const me_ = await pageUser();
+  const lider = me_.access === "lider";
   const sp = await searchParams;
   const t = today();
   const month = /^\d{4}-\d{2}$/.test(sp.m ?? "") ? sp.m! : t.slice(0, 7);
   const me = Number(sp.p) || 0;
-  const edit = sp.edit === "1";
+  const edit = lider && sp.edit === "1";
   const [y, m] = month.split("-");
   const mesNome = MESES[Number(m) - 1];
 
@@ -65,8 +68,8 @@ export default async function Escala({ searchParams }: { searchParams: Promise<{
           <Link className="btn icon" href={`/escala?m=${shift(month, 1)}${q}`} aria-label="Próximo mês">›</Link>
         </div>
         <WhoSelect edit={edit} month={month} value={me ? String(me) : ""} people={people.map((p) => ({ id: Number(p.id), name: p.name }))} />
-        <Link className={`btn${edit ? " primary" : ""}`} href={editHref}>{edit ? "Concluir edição" : "Editar escala"}</Link>
-        <Link className="btn" href={`/escala/distribuir?m=${month}`}>Distribuir automaticamente</Link>
+        {lider && <Link className={`btn${edit ? " primary" : ""}`} href={editHref}>{edit ? "Concluir edição" : "Editar escala"}</Link>}
+        {lider && <Link className="btn" href={`/escala/distribuir?m=${month}`}>Distribuir automaticamente</Link>}
         <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <CopyButton text={L.join("\n")} label="Copiar escala do mês" done="Escala copiada" className="btn" />
         </span>

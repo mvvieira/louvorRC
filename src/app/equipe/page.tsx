@@ -1,12 +1,17 @@
+import { headers } from "next/headers";
+import { pageUser } from "@/lib/auth";
 import { all, type Member } from "@/lib/db";
 import { ddmm, today } from "@/lib/format";
 import { FUNCOES } from "@/lib/roles";
-import { deleteMember, saveMember } from "../actions";
+import { deleteMember, renewMemberLink, saveMember, setMemberAccess } from "../actions";
 import MemberCard from "./MemberCard";
 
 export const dynamic = "force-dynamic";
 
 export default async function Equipe() {
+  const me = await pageUser("lider");
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
   const members = await all<Member>("SELECT * FROM members ORDER BY name");
   const upcoming = await all<{ member_id: number; date: string; role: string }>(
     `SELECT sm.member_id, s.date, sm.role FROM service_members sm JOIN services s ON s.id=sm.service_id
@@ -26,9 +31,14 @@ export default async function Equipe() {
         <button className="btn primary">Adicionar integrante</button>
         <span className="count">{members.length} integrante{members.length === 1 ? "" : "s"}</span>
       </form>
+      <p className="edit-hint">
+        Cada pessoa entra pelo <b>link pessoal</b>: copie e mande no WhatsApp dela. <b>Liderança</b> edita tudo · <b>Ministro</b> monta repertórios ·
+        <b> Banda</b> consulta cultos e marca a própria disponibilidade. Se um link vazar, gere um novo: o antigo para de funcionar.
+      </p>
       <div className="team">
         {members.map((m) => (
-          <MemberCard key={m.id} member={m} funcoes={FUNCOES} meta={meta(Number(m.id))} save={saveMember} remove={deleteMember} />
+          <MemberCard key={m.id} member={m} funcoes={FUNCOES} meta={meta(Number(m.id))} save={saveMember} remove={deleteMember}
+            self={Number(m.id) === me.id} link={`${origin}/entrar/${m.token}`} setAccess={setMemberAccess} renew={renewMemberLink} />
         ))}
       </div>
       {members.length === 0 && (

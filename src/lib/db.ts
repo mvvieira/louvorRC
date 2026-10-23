@@ -1,4 +1,5 @@
 import { createClient, type Client, type InValue } from "@libsql/client";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { CIFRAS, VOZES, fileUrl, folderUrl } from "./seed-data";
@@ -65,9 +66,38 @@ async function init(): Promise<Client> {
     "write",
   );
   await client.execute("PRAGMA foreign_keys = ON");
+  await migrateAccess(client);
   const { rows } = await client.execute("SELECT COUNT(*) AS n FROM songs");
   if (Number(rows[0].n) === 0) await seed(client);
   return client;
+}
+
+/**
+ * Níveis de acesso (liderança, ministro, banda) e o link secreto de cada pessoa.
+ * Na primeira vez: ministro = quem já foi escalado como Ministro; liderança definida pela equipe.
+ */
+async function migrateAccess(client: Client) {
+  const cols = await client.execute("PRAGMA table_info(members)");
+  if (!cols.rows.some((r) => r.name === "access")) {
+    await client.batch(
+      [
+        "ALTER TABLE members ADD COLUMN access TEXT NOT NULL DEFAULT 'banda'",
+        "ALTER TABLE members ADD COLUMN token TEXT NOT NULL DEFAULT ''",
+        "UPDATE members SET access='ministro' WHERE roles LIKE '%Ministro%' OR id IN (SELECT member_id FROM service_members WHERE role='Ministro')",
+        "UPDATE members SET access='lider' WHERE name IN ('Gui Cavalcante', 'Miro', 'Marcus')",
+      ],
+      "write",
+    );
+  }
+  const empty = await client.execute("SELECT id FROM members WHERE token=''");
+  if (empty.rows.length) {
+    await client.batch(empty.rows.map((r) => ({ sql: "UPDATE members SET token=? WHERE id=?", args: [newToken(), r.id] })), "write");
+  }
+}
+
+/** Segredo do link de acesso (impossível de adivinhar). */
+export function newToken(): string {
+  return crypto.randomBytes(24).toString("base64url");
 }
 
 async function seed(client: Client) {
@@ -118,5 +148,6 @@ export type Song = {
   cifra_url: string;
   notes: string;
 };
-export type Member = { id: number; name: string; roles: string; phone: string; active: number };
+export type Access = "lider" | "ministro" | "banda";
+export type Member = { id: number; name: string; roles: string; phone: string; active: number; access: Access; token: string };
 export type Service = { id: number; date: string; title: string; notes: string };

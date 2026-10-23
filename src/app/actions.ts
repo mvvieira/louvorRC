@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { COOKIE, requireLevel, requireSelf } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { all, db, one, run, type Song } from "@/lib/db";
+import { all, db, newToken, one, run, type Access, type Song } from "@/lib/db";
 import { cifraHits } from "@/lib/match";
 import { driveItems } from "@/lib/drive";
 import { linkHits, parseQueryLine, rankBy } from "@/lib/finder";
@@ -14,6 +16,7 @@ const num = (f: FormData, k: string) => Number(f.get(k));
 /* ---------- Músicas ---------- */
 
 export async function saveSong(f: FormData) {
+  await requireLevel("ministro");
   const id = num(f, "id");
   const args = [
     str(f, "title"),
@@ -41,6 +44,7 @@ export async function saveSong(f: FormData) {
 }
 
 export async function deleteSong(f: FormData) {
+  await requireLevel("lider");
   await run("DELETE FROM service_songs WHERE song_id=?", [num(f, "id")]);
   await run("DELETE FROM songs WHERE id=?", [num(f, "id")]);
   revalidatePath("/", "layout");
@@ -50,18 +54,20 @@ export async function deleteSong(f: FormData) {
 /* ---------- Equipe ---------- */
 
 export async function saveMember(f: FormData) {
+  await requireLevel("lider");
   const id = num(f, "id");
   const name = str(f, "name");
   if (!name) return;
   if (id) {
     await run("UPDATE members SET name=?, roles=?, phone=? WHERE id=?", [name, str(f, "roles"), str(f, "phone"), id]);
   } else {
-    await run("INSERT INTO members (name, roles, phone) VALUES (?,?,?)", [name, str(f, "roles"), str(f, "phone")]);
+    await run("INSERT INTO members (name, roles, phone, token) VALUES (?,?,?,?)", [name, str(f, "roles"), str(f, "phone"), newToken()]);
   }
   revalidatePath("/", "layout");
 }
 
 export async function deleteMember(f: FormData) {
+  await requireLevel("lider");
   await run("DELETE FROM service_members WHERE member_id=?", [num(f, "id")]);
   await run("DELETE FROM members WHERE id=?", [num(f, "id")]);
   revalidatePath("/", "layout");
@@ -70,6 +76,7 @@ export async function deleteMember(f: FormData) {
 /* ---------- Cultos ---------- */
 
 export async function createService(f: FormData) {
+  await requireLevel("lider");
   const date = str(f, "date");
   if (!date) return;
   const r = await run("INSERT INTO services (date, title) VALUES (?, ?)", [date, str(f, "title") || "Culto"]);
@@ -83,6 +90,7 @@ export async function createService(f: FormData) {
 }
 
 export async function updateService(f: FormData) {
+  await requireLevel("lider");
   const id = num(f, "id");
   const date = str(f, "date");
   if (!date) return;
@@ -92,11 +100,13 @@ export async function updateService(f: FormData) {
 }
 
 export async function updateServiceNotes(f: FormData) {
+  await requireLevel("ministro");
   await run("UPDATE services SET notes=? WHERE id=?", [str(f, "notes"), num(f, "id")]);
   revalidatePath("/", "layout");
 }
 
 export async function deleteService(f: FormData) {
+  await requireLevel("lider");
   const id = num(f, "id");
   await run("DELETE FROM service_songs WHERE service_id=?", [id]);
   await run("DELETE FROM service_members WHERE service_id=?", [id]);
@@ -133,6 +143,7 @@ async function addSongsFromList(serviceId: number, list: string, noteMissing = t
 }
 
 export async function addServiceMember(f: FormData) {
+  await requireLevel("lider");
   const id = num(f, "service_id");
   const memberId = num(f, "member_id");
   if (!memberId) return;
@@ -141,12 +152,14 @@ export async function addServiceMember(f: FormData) {
 }
 
 export async function removeServiceMember(f: FormData) {
+  await requireLevel("lider");
   await run("DELETE FROM service_members WHERE id=?", [num(f, "id")]);
   revalidatePath("/", "layout");
 }
 
 /** Troca a pessoa de uma posição da escala; sem pessoa, tira a posição. */
 export async function setServiceMember(f: FormData) {
+  await requireLevel("lider");
   const id = num(f, "id");
   const memberId = num(f, "member_id");
   if (memberId) await run("UPDATE service_members SET member_id=? WHERE id=?", [memberId, id]);
@@ -158,6 +171,7 @@ export async function setServiceMember(f: FormData) {
 
 /** Adiciona uma música ao fim do repertório e devolve o id da linha. */
 export async function addSongToService(serviceId: number, songId: number): Promise<number> {
+  await requireLevel("ministro");
   const r = await run("INSERT INTO service_songs (service_id, song_id, position) VALUES (?,?,?)", [
     serviceId, songId, await nextPosition(serviceId),
   ]);
@@ -168,6 +182,7 @@ export async function addSongToService(serviceId: number, songId: number): Promi
 
 /** Cadastra uma música nova no catálogo e já põe no repertório. Tom/versão vêm do texto; links, do Drive. */
 export async function createSongForService(serviceId: number, title: string): Promise<number> {
+  await requireLevel("ministro");
   const q = parseQueryLine(title);
   if (!q) return 0;
   const hits = linkHits(q.title, q.key, q.version, await driveItems());
@@ -180,6 +195,7 @@ export async function createSongForService(serviceId: number, title: string): Pr
 }
 
 export async function removeServiceSongItem(id: number) {
+  await requireLevel("ministro");
   const row = await one<{ service_id: number }>("SELECT service_id FROM service_songs WHERE id=?", [id]);
   await run("DELETE FROM service_songs WHERE id=?", [id]);
   if (row) await syncRepertoire(Number(row.service_id));
@@ -188,6 +204,7 @@ export async function removeServiceSongItem(id: number) {
 
 /** Grava a ordem do repertório a partir da lista de ids na ordem nova. */
 export async function reorderServiceSongs(serviceId: number, ids: number[]) {
+  await requireLevel("ministro");
   for (let k = 0; k < ids.length; k++) {
     await run("UPDATE service_songs SET position=? WHERE id=? AND service_id=?", [k + 1, ids[k], serviceId]);
   }
@@ -197,6 +214,7 @@ export async function reorderServiceSongs(serviceId: number, ids: number[]) {
 
 /** Lista colada: adiciona o que achar no catálogo e devolve o que não achou. */
 export async function pasteSongList(serviceId: number, list: string): Promise<string[]> {
+  await requireLevel("ministro");
   const missing = await addSongsFromList(serviceId, list, false);
   await syncRepertoire(serviceId);
   revalidatePath("/", "layout");
@@ -209,6 +227,7 @@ export type CifraSuggestion = { url: string; name: string; score: number; keyOk:
 
 /** Arquivos de cifra do Drive com nome parecido com a música. */
 export async function suggestCifras(songId: number): Promise<CifraSuggestion[]> {
+  await requireLevel("ministro");
   const song = await one<Song>("SELECT * FROM songs WHERE id=?", [songId]);
   if (!song) return [];
   const cifras = (await driveItems()).filter((i) => i.kind === "cifra");
@@ -218,6 +237,7 @@ export async function suggestCifras(songId: number): Promise<CifraSuggestion[]> 
 }
 
 export async function setSongCifra(songId: number, url: string) {
+  await requireLevel("ministro");
   await run("UPDATE songs SET cifra_url=? WHERE id=?", [url, songId]);
   revalidatePath("/", "layout");
 }
@@ -226,6 +246,7 @@ export async function setSongCifra(songId: number, url: string) {
 
 /** Troca a pasta de vozes ou a cifra de uma música (vale para o catálogo todo). Tom/versão vazios vêm da pasta. */
 export async function setSongLink(songId: number, kind: "vozes" | "cifra", url: string) {
+  await requireLevel("ministro");
   const col = kind === "vozes" ? "vozes_url" : "cifra_url";
   await run(`UPDATE songs SET ${col}=? WHERE id=?`, [url, songId]);
   if (kind === "vozes" && url) {
@@ -242,6 +263,7 @@ export async function setSongLink(songId: number, kind: "vozes" | "cifra", url: 
 
 /** Preenche de uma vez os links que faltam no repertório com o melhor resultado do Drive. Devolve quantos ligou. */
 export async function fillServiceLinks(serviceId: number): Promise<number> {
+  await requireLevel("ministro");
   const songs = await all<Song>(
     "SELECT s.* FROM service_songs ss JOIN songs s ON s.id=ss.song_id WHERE ss.service_id=?",
     [serviceId],
@@ -265,6 +287,7 @@ export async function fillServiceLinks(serviceId: number): Promise<number> {
 
 /** 1 = disponível, 0 = indisponível, null = apaga a resposta. */
 export async function setAvailability(memberId: number, serviceId: number, available: 0 | 1 | null) {
+  await requireSelf(memberId);
   if (available === null) {
     await run("DELETE FROM availability WHERE member_id=? AND service_id=?", [memberId, serviceId]);
   } else {
@@ -279,6 +302,7 @@ export async function setAvailability(memberId: number, serviceId: number, avail
 
 /** Marca (ou limpa) de uma vez os cultos ainda por vir do mês "AAAA-MM". */
 export async function setMonthAvailability(memberId: number, month: string, available: 0 | 1 | null, from: string) {
+  await requireSelf(memberId);
   const cs = await all<{ id: number }>("SELECT id FROM services WHERE date LIKE ? AND date >= ?", [`${month}-%`, from]);
   for (const c of cs) {
     if (available === null) await run("DELETE FROM availability WHERE member_id=? AND service_id=?", [memberId, c.id]);
@@ -295,6 +319,7 @@ export async function setMonthAvailability(memberId: number, month: string, avai
 
 /** Lança na escala as posições revisadas na página Distribuir (não repete pessoa no mesmo culto). */
 export async function applyDistribution(month: string, picks: { service_id: number; member_id: number; role: string }[], stay = false) {
+  await requireLevel("lider");
   const c = await db();
   const res = await c.batch(
     picks.map((p) => ({
@@ -307,4 +332,26 @@ export async function applyDistribution(month: string, picks: { service_id: numb
   revalidatePath("/", "layout");
   if (stay) return; // na página do culto a escala atualiza no lugar
   redirect(`/escala?m=${month}&done=${res.reduce((n, r) => n + r.rowsAffected, 0)}`);
+}
+
+/* ---------- Acesso ---------- */
+
+export async function logout() {
+  (await cookies()).delete(COOKIE);
+  redirect("/sem-acesso");
+}
+
+/** Liderança muda o nível de alguém (não dá para tirar a própria liderança por engano). */
+export async function setMemberAccess(memberId: number, access: Access) {
+  const me = await requireLevel("lider");
+  if (!["lider", "ministro", "banda"].includes(access) || memberId === me.id) return;
+  await run("UPDATE members SET access=? WHERE id=?", [access, memberId]);
+  revalidatePath("/", "layout");
+}
+
+/** Gera um link novo para a pessoa; o antigo para de funcionar. */
+export async function renewMemberLink(memberId: number) {
+  await requireLevel("lider");
+  await run("UPDATE members SET token=? WHERE id=?", [newToken(), memberId]);
+  revalidatePath("/", "layout");
 }

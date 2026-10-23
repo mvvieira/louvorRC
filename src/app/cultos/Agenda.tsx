@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { dayName, MESES } from "@/lib/format";
 import type { AgendaItem } from "./layout";
 
-export default function Agenda({ up, past }: { up: AgendaItem[]; past: AgendaItem[] }) {
+export default function Agenda({ up, past, lider }: { up: AgendaItem[]; past: AgendaItem[]; lider: boolean }) {
   const path = usePathname();
   const item = (s: AgendaItem, isPast: boolean) => {
     const href = `/cultos/${s.id}`;
@@ -32,7 +32,7 @@ export default function Agenda({ up, past }: { up: AgendaItem[]; past: AgendaIte
     });
   return (
     <aside className="agenda">
-      <div className="agenda-head"><h2>Agenda</h2><Link className="btn small primary" href="/cultos">Novo culto</Link></div>
+      <div className="agenda-head"><h2>Agenda</h2>{lider && <Link className="btn small primary" href="/cultos">Novo culto</Link>}</div>
       <ul>
         {byMonth(up, false)}
         {byMonth(past, true, "Anteriores · ")}

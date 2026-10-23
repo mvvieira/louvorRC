@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { can, pageUser } from "@/lib/auth";
 import { all, one, type Member, type Service, type Song } from "@/lib/db";
 import { dayName, ddmm, today } from "@/lib/format";
 import { monthData } from "@/lib/distribute-data";
@@ -21,6 +22,8 @@ import Repertoire, { type LinkOpt, type SongLinks } from "../Repertoire";
 export const dynamic = "force-dynamic";
 
 export default async function Culto({ params }: { params: Promise<{ id: string }> }) {
+  const me = await pageUser();
+  const lider = can(me, "lider"), ministro = can(me, "ministro");
   const { id: idStr } = await params;
   const id = Number(idStr);
   const service = await one<Service>("SELECT * FROM services WHERE id=?", [id]);
@@ -73,18 +76,26 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
   const roleOrder = (r: string) => (FUNCOES.indexOf(r) < 0 ? 99 : FUNCOES.indexOf(r));
   team.sort((a, b) => roleOrder(a.role) - roleOrder(b.role) || a.sm_id - b.sm_id);
   const month = service.date.slice(0, 7);
-  const auto = service.date >= today() ? await monthData(month) : null;
+  const auto = lider && service.date >= today() ? await monthData(month) : null;
   const roleOptions = [...new Set([...FUNCOES, ...members.flatMap((m) => splitRoles(m.roles))])];
 
   return (
     <>
-      <AutoForm action={updateService} className="sheet-head">
-        <input type="hidden" name="id" value={id} />
-        <input className="title-in" type="text" name="title" defaultValue={service.title} placeholder="Nome do culto (ex.: Domingo, Apresentação de Filhos)" aria-label="Nome do culto" />
-        <label className="f">Data<input type="date" name="date" defaultValue={service.date} required /></label>
-      </AutoForm>
+      {lider ? (
+        <AutoForm action={updateService} className="sheet-head">
+          <input type="hidden" name="id" value={id} />
+          <input className="title-in" type="text" name="title" defaultValue={service.title} placeholder="Nome do culto (ex.: Domingo, Apresentação de Filhos)" aria-label="Nome do culto" />
+          <label className="f">Data<input type="date" name="date" defaultValue={service.date} required /></label>
+        </AutoForm>
+      ) : (
+        <div className="sheet-head ro-head">
+          <h2>{service.title}</h2>
+          <span className="muted">{dayName(service.date)} {ddmm(service.date)}/{service.date.slice(0, 4)}</span>
+        </div>
+      )}
 
-      {service.notes && (
+      {service.notes && !ministro && <p className="notes">{service.notes}</p>}
+      {service.notes && ministro && (
         <AutoForm action={updateServiceNotes}>
           <input type="hidden" name="id" value={id} />
           <label className="f">Observações<textarea name="notes" rows={2} defaultValue={service.notes} /></label>
@@ -92,7 +103,7 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
       )}
 
       <div className="sec">
-        <Repertoire serviceId={id} items={items} songs={songs} links={links} driveReady={drive.length > 0}
+        <Repertoire readOnly={!ministro} serviceId={id} items={items} songs={songs} links={links} driveReady={drive.length > 0}
           twins={twins.map((t) => ({ id: Number(t.id), title: t.title }))} />
       </div>
 
@@ -101,9 +112,21 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
         {auto && <AutoEscala key={team.map((t) => t.sm_id).join()} serviceId={id} month={month} {...auto} />}
         {awayTeam.length > 0 && (
           <p className="notes" style={{ marginBottom: 10 }}>
-            ⚠ {awayTeam.map((t) => `${t.name} (${t.role})`).join(", ")} marcou que não pode neste culto. Troque na lista abaixo.
+            ⚠ {awayTeam.map((t) => `${t.name} (${t.role})`).join(", ")} marcou que não pode neste culto.{lider && " Troque na lista abaixo."}
           </p>
         )}
+        {!lider ? (
+          team.length ? (
+            <dl className="esc-ro">
+              {team.map((t) => (
+                <div key={t.sm_id} style={{ display: "contents" }}>
+                  <dt>{t.role || "—"}</dt>
+                  <dd className={Number(t.member_id) === me.id ? "me" : undefined}>{t.name}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : <p className="muted">Escala ainda não lançada.</p>
+        ) : (
         <div className="escala">
           {team.map((t) => (
             <form action={removeServiceMember} className="esc-row" key={t.sm_id}>
@@ -123,6 +146,7 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
             <AddSlot serviceId={id} roles={roleOptions} people={slotPeople} busy={busy} away={away} add={addServiceMember} />
           )}
         </div>
+        )}
       </div>
 
       <div className="sec">
@@ -131,10 +155,12 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
           <textarea readOnly value={share} aria-label="Mensagem gerada" />
           <div className="out-bar">
             <CopyButton text={share} />
-            <form action={deleteService} style={{ marginLeft: "auto" }}>
-              <input type="hidden" name="id" value={id} />
-              <ConfirmButton className="btn ghost small" message="Excluir este culto? O repertório e a escala dele serão apagados.">Excluir culto</ConfirmButton>
-            </form>
+            {lider && (
+              <form action={deleteService} style={{ marginLeft: "auto" }}>
+                <input type="hidden" name="id" value={id} />
+                <ConfirmButton className="btn ghost small" message="Excluir este culto? O repertório e a escala dele serão apagados.">Excluir culto</ConfirmButton>
+              </form>
+            )}
           </div>
         </div>
       </div>

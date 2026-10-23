@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { pageUser } from "@/lib/auth";
 import { lastSync } from "@/lib/drive";
 import { driveNews } from "@/lib/importer";
 import Importer from "./Importer";
@@ -6,6 +7,7 @@ import Importer from "./Importer";
 export const dynamic = "force-dynamic";
 
 export default async function Importar() {
+  await pageUser("lider");
   const s = await lastSync();
   const news = await driveNews();
   const when = s.at

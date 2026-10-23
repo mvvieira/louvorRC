@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { can, pageUser } from "@/lib/auth";
 import { all, type Song } from "@/lib/db";
 import { driveNews } from "@/lib/importer";
 import SongForm from "./SongForm";
@@ -8,8 +9,10 @@ import NewSongDialog, { CloseDialog } from "./NewSongDialog";
 export const dynamic = "force-dynamic";
 
 export default async function Musicas() {
+  const me = await pageUser();
+  const lider = can(me, "lider");
   const songs = await all<Song>("SELECT * FROM songs ORDER BY title");
-  const news = await driveNews();
+  const news = lider ? await driveNews() : { total: 0, vozes: [], loose: [], broken: [] };
   return (
     <>
       {news.total > 0 && (
@@ -26,8 +29,8 @@ export default async function Musicas() {
         </Link>
       )}
       <SongTable songs={songs}>
-        <NewSongDialog><SongForm cancel={<CloseDialog />} /></NewSongDialog>
-        <Link className="btn" href="/musicas/importar">Importar do Drive</Link>
+        {can(me, "ministro") && <NewSongDialog><SongForm cancel={<CloseDialog />} /></NewSongDialog>}
+        {lider && <Link className="btn" href="/musicas/importar">Importar do Drive</Link>}
       </SongTable>
     </>
   );

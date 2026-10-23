@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { pageUser } from "@/lib/auth";
 import { all, type Service } from "@/lib/db";
 import { MESES, shiftMonth, today } from "@/lib/format";
 import { serviceType } from "@/lib/roles";
@@ -13,6 +14,7 @@ type Item = Service & { n: number; ministros: string | null };
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 export default async function Calendario({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
+  await pageUser();
   const sp = await searchParams;
   const t = today();
   const month = /^\d{4}-\d{2}$/.test(sp.m ?? "") ? sp.m! : t.slice(0, 7);

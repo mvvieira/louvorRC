@@ -11,11 +11,12 @@ const TABS = [
   ["/equipe", "Equipe"],
 ];
 
-export default function NavTabs() {
+/** Abas do app; Equipe (níveis e links de acesso) só aparece para a liderança. */
+export default function NavTabs({ lider }: { lider: boolean }) {
   const path = usePathname();
   return (
     <nav className="tabs" aria-label="Seções">
-      {TABS.map(([href, label]) => (
+      {TABS.filter(([href]) => lider || href !== "/equipe").map(([href, label]) => (
         <Link key={href} href={href} aria-current={path === href || path.startsWith(href + "/") ? "page" : undefined}>
           {label}
         </Link>
