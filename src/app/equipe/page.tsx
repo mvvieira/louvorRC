@@ -2,7 +2,7 @@ import { isAdmin, pageUser, teamPassword } from "@/lib/auth";
 import { all, type Member } from "@/lib/db";
 import { ddmm, today } from "@/lib/format";
 import { FUNCOES } from "@/lib/roles";
-import { deleteMember, saveMember, setTeamPassword } from "../actions";
+import { deleteMember, saveMember, setMyPassword, setTeamPassword } from "../actions";
 import MemberCard from "./MemberCard";
 
 export const dynamic = "force-dynamic";
@@ -32,12 +32,20 @@ export default async function Equipe() {
       </form>
       <div className="access-box">
         {admin ? (
-          <form action={setTeamPassword} className="tools">
-            <label className="f">Senha do grupo
-              <input type="text" name="pass" defaultValue={pass} minLength={4} required autoComplete="off" />
-            </label>
-            <button className="btn">Salvar senha</button>
-          </form>
+          <>
+            <form action={setTeamPassword} className="tools">
+              <label className="f">Senha do grupo
+                <input type="text" name="pass" defaultValue={pass} minLength={4} required autoComplete="off" />
+              </label>
+              <button className="btn">Salvar senha</button>
+            </form>
+            <form action={setMyPassword} className="tools">
+              <label className="f">Minha senha de entrada (perfil {me.name})
+                <input type="password" name="pass" minLength={6} required autoComplete="new-password" placeholder="nova senha" />
+              </label>
+              <button className="btn">Trocar minha senha</button>
+            </form>
+          </>
         ) : (
           <p className="pass-ro">Senha do grupo: <b>{pass}</b> <span className="muted">(só o administrador troca)</span></p>
         )}

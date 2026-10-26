@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { COOKIE, isAdmin, requireLevel, requireSelf } from "@/lib/auth";
+import { COOKIE, hashSecret, isAdmin, requireLevel, requireSelf } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { all, db, newToken, one, run, type Access, type Song } from "@/lib/db";
 import { cifraHits } from "@/lib/match";
@@ -356,5 +356,15 @@ export async function setTeamPassword(f: FormData) {
   const pass = str(f, "pass");
   if (pass.length < 4) return;
   await run("INSERT INTO settings (key, value) VALUES ('team_password', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [pass]);
+  revalidatePath("/", "layout");
+}
+
+/** O administrador troca a própria senha de entrada. */
+export async function setMyPassword(f: FormData) {
+  const me = await requireLevel("lider");
+  if (!(await isAdmin(me))) throw new Error("Só o administrador tem senha pessoal.");
+  const pass = String(f.get("pass") ?? "");
+  if (pass.length < 6) return;
+  await run("UPDATE members SET pin_hash=?, pin_fails=0, pin_until='' WHERE id=?", [hashSecret(pass), me.id]);
   revalidatePath("/", "layout");
 }

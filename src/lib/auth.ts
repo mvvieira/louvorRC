@@ -68,6 +68,19 @@ export async function isAdmin(u: User | null): Promise<boolean> {
   return !!id && Number(id) === u.id;
 }
 
+/* ---------- Senha pessoal (hoje só o administrador tem; fica em members.pin_hash) ---------- */
+
+export function hashSecret(secret: string): string {
+  const salt = crypto.randomBytes(16).toString("hex");
+  return `${salt}:${crypto.scryptSync(secret, salt, 32).toString("hex")}`;
+}
+
+export function checkSecret(secret: string, stored: string): boolean {
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  return crypto.timingSafeEqual(Buffer.from(hash, "hex"), crypto.scryptSync(secret, salt, 32));
+}
+
 /** Este aparelho já passou pela senha do grupo (a atual)? */
 export async function teamOk(): Promise<boolean> {
   const c = (await cookies()).get(TEAM_COOKIE)?.value;

@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { enterTeam, pickMember } from "./actions";
+import { enterPassword, enterTeam, pickMember } from "./actions";
 
 type P = { id: number; name: string; roles: string };
 
@@ -11,6 +11,8 @@ export default function Entrar({ team, people }: { team: boolean; people: P[] })
   const [err, setErr] = useState("");
   const [pass, setPass] = useState("");
   const [q, setQ] = useState("");
+  const [locked, setLocked] = useState<{ id: number; name: string } | null>(null);
+  const [secret, setSecret] = useState("");
 
   const go = () => { router.replace("/calendario"); router.refresh(); };
 
@@ -31,6 +33,25 @@ export default function Entrar({ team, people }: { team: boolean; people: P[] })
     );
   }
 
+  if (locked) {
+    return (
+      <form className="sheet login" onSubmit={(e) => {
+        e.preventDefault();
+        start(async () => {
+          const r = await enterPassword(locked.id, secret);
+          if ("ok" in r) go(); else { setErr(r.error); setSecret(""); }
+        });
+      }}>
+        <h2>{locked.name}</h2>
+        <p className="muted">Este perfil tem senha. Digite a sua senha para entrar.</p>
+        <input type="password" value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="Sua senha" aria-label="Sua senha" autoFocus required />
+        {err && <p className="no-t">{err}</p>}
+        <button className="btn primary" disabled={pending || !secret}>{pending ? "Conferindo…" : "Entrar"}</button>
+        <button type="button" className="btn ghost small" onClick={() => { setLocked(null); setSecret(""); setErr(""); }}>Não sou {locked.name}</button>
+      </form>
+    );
+  }
+
   const nq = q.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const shown = people.filter((p) => !nq || p.name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(nq));
   return (
@@ -43,7 +64,9 @@ export default function Entrar({ team, people }: { team: boolean; people: P[] })
         {shown.map((p) => (
           <li key={p.id}>
             <button type="button" className="who-btn" disabled={pending} onClick={() => start(async () => {
-              if (await pickMember(p.id)) go();
+              const r = await pickMember(p.id);
+              if (r === "in") go();
+              else if (r === "password") { setErr(""); setLocked({ id: p.id, name: p.name }); }
               else { setErr("Digite a senha do grupo de novo."); router.refresh(); }
             })}>
               <b>{p.name}</b>
