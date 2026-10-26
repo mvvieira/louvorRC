@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ACCESS_NAME, currentUser } from "@/lib/auth";
+import { currentUser } from "@/lib/auth";
 import { logout } from "./actions";
 import NavTabs from "./NavTabs";
 import "./globals.css";
@@ -51,7 +51,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </header>
         {me && (
           <div className="wrap me-bar">
-            <span><b>{me.name}</b> · {ACCESS_NAME[me.access]}</span>
+            <span><b>{me.name}</b>{me.roles && <> · {me.roles}</>}</span>
             <form action={logout}><button className="btn ghost small">Trocar de pessoa</button></form>
           </div>
         )}

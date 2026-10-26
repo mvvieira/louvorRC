@@ -12,17 +12,16 @@ import { one, type Access } from "./db";
 export const COOKIE = "rc_acesso";
 export const TEAM_COOKIE = "rc_equipe";
 export const YEAR = 60 * 60 * 24 * 365;
-export type User = { id: number; name: string; access: Access };
+export type User = { id: number; name: string; access: Access; roles: string };
 
 const RANK: Record<Access, number> = { banda: 1, ministro: 2, lider: 3 };
-export const ACCESS_NAME: Record<Access, string> = { lider: "Liderança", ministro: "Ministro", banda: "Banda" };
 
 /** Quem está usando o app (uma consulta por requisição). */
 export const currentUser = cache(async (): Promise<User | null> => {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
-  const u = await one<User>("SELECT id, name, access FROM members WHERE token=? AND token<>'' AND active=1", [token]);
-  return u ? { id: Number(u.id), name: u.name, access: u.access } : null;
+  const u = await one<User>("SELECT id, name, access, roles FROM members WHERE token=? AND token<>'' AND active=1", [token]);
+  return u ? { id: Number(u.id), name: u.name, access: u.access, roles: u.roles ?? "" } : null;
 });
 
 /** O usuário tem pelo menos este nível? */
