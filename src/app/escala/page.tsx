@@ -47,6 +47,10 @@ export default async function Escala({ searchParams }: { searchParams: Promise<{
   const hasMe = (c: Service) => at(Number(c.id)).some((s) => Number(s.member_id) === me);
   const person = people.find((p) => Number(p.id) === me);
   const mine = cs.filter(hasMe);
+  // quem está usando o app: destaque amarelo como no calendário
+  const you = me_.id;
+  const yours = (c: Service) => at(Number(c.id)).filter((s) => Number(s.member_id) === you);
+  const yourCs = cs.filter((c) => yours(c).length);
 
   const L = [`📅 *ESCALA RC LOUVOR – ${mesNome.toUpperCase()} ${y}*`];
   for (const c of cs.filter((c) => !me || hasMe(c))) {
@@ -77,6 +81,17 @@ export default async function Escala({ searchParams }: { searchParams: Promise<{
 
       {sp.done !== undefined && (
         <p className="edit-hint">✓ {sp.done} pessoa{sp.done === "1" ? "" : "s"} lançada{sp.done === "1" ? "" : "s"} na escala pela distribuição automática. Para trocar alguém, use “Editar escala”.</p>
+      )}
+
+      {!person && (
+        <p className="today-mine esc-mine">
+          <span className="you-dot">★</span>
+          {yourCs.length
+            ? <>Você está em <b>{yourCs.length} culto{yourCs.length === 1 ? "" : "s"}</b> em {mesNome}: {yourCs.map((c, i) => (
+                <span key={c.id}>{i > 0 && " · "}{dayName(c.date)} {ddmm(c.date)} ({yours(c).map(roleOf).join(", ")})</span>
+              ))}</>
+            : <>Você não está escalado em {mesNome}.</>}
+        </p>
       )}
 
       {person && (
@@ -113,16 +128,17 @@ export default async function Escala({ searchParams }: { searchParams: Promise<{
         <>
           <div className={`grid-wrap${edit ? " editing" : " has-grid"}`}>
             <table className={`eg ${me ? "focus" : ""}`}>
-              <colgroup><col />{cs.map((c) => <col key={c.id} className={c.date === t ? "today" : undefined} />)}</colgroup>
+              <colgroup><col />{cs.map((c) => <col key={c.id} className={[c.date === t && "today", yours(c).length && "mine"].filter(Boolean).join(" ") || undefined} />)}</colgroup>
               <thead>
                 <tr>
                   <th className="corner" />
                   {cs.map((c) => (
-                    <th key={c.id}>
+                    <th key={c.id} className={yours(c).length ? "mine" : undefined}>
                       <Link className="colh" href={`/cultos/${c.id}`} title="Abrir culto" style={{ "--tc": `var(--t-${serviceType(c.title)[0]})` } as React.CSSProperties}>
                         <span className="dw">{dayName(c.date)}</span>
                         <span className="dn">{c.date.slice(8, 10)}</span>
                         <span className="tt">{c.title}</span>
+                        {yours(c).length > 0 && <span className="ev-you">★ Você</span>}
                       </Link>
                     </th>
                   ))}
@@ -150,7 +166,7 @@ export default async function Escala({ searchParams }: { searchParams: Promise<{
                       return ss.length ? (
                         <td key={c.id}>{ss.map((s, i) => {
                           const off = awayAt(Number(c.id)).includes(Number(s.member_id));
-                          return <span key={i} className={`p ${Number(s.member_id) === me ? "me" : ""}${off ? " away" : ""}`} title={off ? "Marcou que não pode neste culto" : undefined}>{off && "⚠ "}{s.name}</span>;
+                          return <span key={i} className={`p ${Number(s.member_id) === me ? "me" : ""}${Number(s.member_id) === you ? " you" : ""}${off ? " away" : ""}`} title={off ? "Marcou que não pode neste culto" : undefined}>{off && "⚠ "}{s.name}</span>;
                         })}</td>
                       ) : <td key={c.id} className="empty">·</td>;
                     })}
@@ -161,15 +177,16 @@ export default async function Escala({ searchParams }: { searchParams: Promise<{
           </div>
           <div className={`cards${edit ? " hidden" : ""}`}>
             {cs.map((c) => (
-              <Link key={c.id} href={`/cultos/${c.id}`} className={`ccard ${!me || hasMe(c) ? "" : "dim"}`}
+              <Link key={c.id} href={`/cultos/${c.id}`} className={`ccard ${!me || hasMe(c) ? "" : "dim"}${yours(c).length ? " mine" : ""}`}
                 style={{ "--tc": `var(--t-${serviceType(c.title)[0]})` } as React.CSSProperties}>
+                {yours(c).length > 0 && <span className="ev-you">★ Você · {yours(c).map(roleOf).join(", ")}</span>}
                 <h3>{dayName(c.date)} {ddmm(c.date)} · {c.title}</h3>
                 <dl>
                   {fs.filter((f) => at(Number(c.id), f).length).map((f) => (
                     <div key={f} style={{ display: "contents" }}>
                       <dt>{f}</dt>
                       <dd>{at(Number(c.id), f).map((s, i) => (
-                        <span key={i}>{i > 0 && ", "}<span className={Number(s.member_id) === me ? "me" : undefined}>{s.name}</span></span>
+                        <span key={i}>{i > 0 && ", "}<span className={[Number(s.member_id) === me && "me", Number(s.member_id) === you && "you"].filter(Boolean).join(" ") || undefined}>{s.name}</span></span>
                       ))}</dd>
                     </div>
                   ))}
