@@ -132,9 +132,23 @@ export function db(): Promise<Client> {
   return globalThis.__db;
 }
 
+/**
+ * O Turso às vezes fecha a conexão parada entre uma visita e outra ("fetch failed / other side closed").
+ * Leituras tentam de novo uma vez; gravações não, para nunca duplicar dados.
+ */
+async function retryRead<T>(f: () => Promise<T>): Promise<T> {
+  try {
+    return await f();
+  } catch (e) {
+    const msg = `${(e as Error)?.message ?? ""} ${String((e as { cause?: unknown })?.cause ?? "")}`;
+    if (!/fetch failed|other side closed|ECONNRESET|UND_ERR_SOCKET/i.test(msg)) throw e;
+    return f();
+  }
+}
+
 export async function all<T>(sql: string, args: InValue[] = []): Promise<T[]> {
   const c = await db();
-  const r = await c.execute({ sql, args });
+  const r = await retryRead(() => c.execute({ sql, args }));
   return r.rows.map((row) => ({ ...row }) as T);
 }
 
