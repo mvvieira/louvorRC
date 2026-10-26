@@ -51,6 +51,7 @@ export default async function Escala({ searchParams }: { searchParams: Promise<{
   const you = me_.id;
   const yours = (c: Service) => at(Number(c.id)).filter((s) => Number(s.member_id) === you);
   const yourCs = cs.filter((c) => yours(c).length);
+  const col = (c: Service) => (yours(c).length ? " mine" : "");
 
   const L = [`📅 *ESCALA RC LOUVOR – ${mesNome.toUpperCase()} ${y}*`];
   for (const c of cs.filter((c) => !me || hasMe(c))) {
@@ -146,7 +147,7 @@ export default async function Escala({ searchParams }: { searchParams: Promise<{
               </thead>
               <tbody>
                 {fs.length === 0 && (
-                  <tr><th scope="row">Escala</th>{cs.map((c) => <td key={c.id} className="empty">·</td>)}</tr>
+                  <tr><th scope="row">Escala</th>{cs.map((c) => <td key={c.id} className={`empty${col(c)}`}>·</td>)}</tr>
                 )}
                 {fs.map((f) => (
                   <tr key={f}>
@@ -157,18 +158,18 @@ export default async function Escala({ searchParams }: { searchParams: Promise<{
                         const busy = at(Number(c.id)).map((s) => Number(s.member_id));
                         const common = { serviceId: Number(c.id), role: f, people: slotPeople, busy, away: awayAt(Number(c.id)), change: setServiceMember, add: addServiceMember };
                         return (
-                          <td key={c.id} className="edit-cell">
+                          <td key={c.id} className={`edit-cell${col(c)}`}>
                             {ss.map((s) => <SlotSelect key={s.id} {...common} slotId={Number(s.id)} current={Number(s.member_id)} />)}
                             <SlotSelect {...common} />
                           </td>
                         );
                       }
                       return ss.length ? (
-                        <td key={c.id}>{ss.map((s, i) => {
+                        <td key={c.id} className={col(c).trim() || undefined}>{ss.map((s, i) => {
                           const off = awayAt(Number(c.id)).includes(Number(s.member_id));
                           return <span key={i} className={`p ${Number(s.member_id) === me ? "me" : ""}${Number(s.member_id) === you ? " you" : ""}${off ? " away" : ""}`} title={off ? "Marcou que não pode neste culto" : undefined}>{off && "⚠ "}{s.name}</span>;
                         })}</td>
-                      ) : <td key={c.id} className="empty">·</td>;
+                      ) : <td key={c.id} className={`empty${col(c)}`}>·</td>;
                     })}
                   </tr>
                 ))}
