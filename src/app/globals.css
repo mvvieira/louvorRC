@@ -176,16 +176,16 @@ table.songs { border-collapse: collapse; width: 100%; min-width: 600px; }
 .songs tbody tr[data-href]:hover { background: var(--field); }
 
 /* Equipe */
-.team { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
-.member { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 8px; align-content: start; }
+.team { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.member { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px 18px; display: grid; gap: 14px; align-content: start; }
 .member .nm { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-.member .nm input { font-weight: 700; font-size: 17px; flex: 1; background: none; border: 0; border-bottom: 1px solid transparent; border-radius: 0; padding: 2px 0; }
+.member .nm input { font-weight: 700; font-size: 18px; flex: 1; background: none; border: 0; border-bottom: 1px solid transparent; border-radius: 0; padding: 2px 0; }
 .member .nm input:focus { border-color: var(--flame); outline: none; }
 .member .phone { font-size: 14px; }
-.roles { display: flex; flex-wrap: wrap; gap: 6px; }
-.role { border: 1px solid var(--line); background: var(--field); border-radius: 999px; padding: 3px 10px; font-size: 13px; cursor: pointer; }
+.roles { display: flex; flex-wrap: wrap; gap: 8px; }
+.role { border: 1px solid var(--line); background: var(--field); border-radius: 999px; padding: 6px 12px; font-size: 13px; line-height: 1.2; cursor: pointer; }
 .role[aria-pressed="true"] { background: var(--ink); color: var(--sky); border-color: var(--ink); }
-.member .meta { font-size: 13px; color: var(--ink-2); }
+.member .meta { font-size: 13px; color: var(--ink-2); line-height: 1.45; padding-top: 12px; border-top: 1px solid var(--line); }
 
 /* Diálogo e formulário de música */
 dialog { border: 1px solid var(--line); border-radius: 18px; padding: 0; background: var(--paper); color: var(--ink); width: min(620px, 94vw); max-height: 90vh; }
