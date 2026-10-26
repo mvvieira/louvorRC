@@ -476,3 +476,5 @@ h3 { text-transform: uppercase; letter-spacing: .02em; }
 .ccard.mine { background: var(--me-soft); box-shadow: inset 0 0 0 2px var(--me); }
 .ccard.mine .ev-you { display: inline-block; margin-bottom: 4px; }
 .ccard .you { background: var(--me); color: var(--me-ink); font-weight: 800; border-radius: 5px; padding: 0 5px; }
+.pass-ro { margin: 0; font-size: 15px; }
+.pass-ro b { font-family: ui-monospace, Menlo, monospace; background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 2px 8px; }

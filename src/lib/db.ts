@@ -95,6 +95,8 @@ async function migrateAccess(client: Client) {
       "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
       // senha inicial do grupo; a liderança troca na aba Equipe
       "INSERT OR IGNORE INTO settings (key, value) VALUES ('team_password', 'rasgando')",
+      // dono do app: o único que troca a senha do grupo
+      "INSERT OR IGNORE INTO settings (key, value) SELECT 'admin_id', CAST(id AS TEXT) FROM members WHERE name='Marcus' LIMIT 1",
     ],
     "write",
   );

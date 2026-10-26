@@ -61,6 +61,13 @@ export const normPass = (p: string) => p.trim().toLowerCase();
 /** O que fica no cookie depois de acertar a senha (troca de senha derruba os cookies antigos). */
 export const teamKey = (pass: string) => crypto.createHash("sha256").update(`rc-louvor:${normPass(pass)}`).digest("hex");
 
+/** O dono do app (settings.admin_id) — o único que troca a senha do grupo. */
+export async function isAdmin(u: User | null): Promise<boolean> {
+  if (!u) return false;
+  const id = (await one<{ value: string }>("SELECT value FROM settings WHERE key='admin_id'"))?.value;
+  return !!id && Number(id) === u.id;
+}
+
 /** Este aparelho já passou pela senha do grupo (a atual)? */
 export async function teamOk(): Promise<boolean> {
   const c = (await cookies()).get(TEAM_COOKIE)?.value;

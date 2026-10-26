@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { COOKIE, requireLevel, requireSelf } from "@/lib/auth";
+import { COOKIE, isAdmin, requireLevel, requireSelf } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { all, db, newToken, one, run, type Access, type Song } from "@/lib/db";
 import { cifraHits } from "@/lib/match";
@@ -352,7 +352,7 @@ export async function setMemberAccess(memberId: number, access: Access) {
 
 /** Troca a senha do grupo; quem ainda não entrou precisa da nova (quem já entrou continua). */
 export async function setTeamPassword(f: FormData) {
-  await requireLevel("lider");
+  if (!(await isAdmin(await requireLevel("lider")))) throw new Error("Só o administrador troca a senha do grupo.");
   const pass = str(f, "pass");
   if (pass.length < 4) return;
   await run("INSERT INTO settings (key, value) VALUES ('team_password', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [pass]);

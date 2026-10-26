@@ -1,4 +1,4 @@
-import { pageUser, teamPassword } from "@/lib/auth";
+import { isAdmin, pageUser, teamPassword } from "@/lib/auth";
 import { all, type Member } from "@/lib/db";
 import { ddmm, today } from "@/lib/format";
 import { FUNCOES } from "@/lib/roles";
@@ -8,7 +8,8 @@ import MemberCard from "./MemberCard";
 export const dynamic = "force-dynamic";
 
 export default async function Equipe() {
-  await pageUser("lider");
+  const me = await pageUser("lider");
+  const admin = await isAdmin(me);
   const pass = await teamPassword();
   const members = await all<Member>("SELECT * FROM members ORDER BY name");
   const upcoming = await all<{ member_id: number; date: string; role: string }>(
@@ -30,12 +31,16 @@ export default async function Equipe() {
         <span className="count">{members.length} integrante{members.length === 1 ? "" : "s"}</span>
       </form>
       <div className="access-box">
-        <form action={setTeamPassword} className="tools">
-          <label className="f">Senha do grupo
-            <input type="text" name="pass" defaultValue={pass} minLength={4} required autoComplete="off" />
-          </label>
-          <button className="btn">Salvar senha</button>
-        </form>
+        {admin ? (
+          <form action={setTeamPassword} className="tools">
+            <label className="f">Senha do grupo
+              <input type="text" name="pass" defaultValue={pass} minLength={4} required autoComplete="off" />
+            </label>
+            <button className="btn">Salvar senha</button>
+          </form>
+        ) : (
+          <p className="pass-ro">Senha do grupo: <b>{pass}</b> <span className="muted">(só o administrador troca)</span></p>
+        )}
         <p className="muted">
           Mande essa senha no grupo do WhatsApp. Cada pessoa entra com ela e toca no próprio nome.
         </p>
