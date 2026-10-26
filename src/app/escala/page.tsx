@@ -66,7 +66,7 @@ export default async function Escala({ searchParams }: { searchParams: Promise<{
 
   return (
     <>
-      <div className="esc-top">
+      <div className="esc-top esc-full">
         <div className="month">
           <Link className="btn icon" href={`/escala?m=${shift(month, -1)}${q}`} aria-label="Mês anterior">‹</Link>
           <h2>{mesNome} {y}</h2>

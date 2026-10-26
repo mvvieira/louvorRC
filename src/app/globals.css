@@ -504,3 +504,10 @@ h3 { text-transform: uppercase; letter-spacing: .02em; }
 .rel-legend .cov-wait { background: color-mix(in srgb, var(--warn) 25%, var(--paper)); }
 .rel-legend .cov-bad { background: color-mix(in srgb, #E5484D 30%, var(--paper)); }
 .rel-ready { justify-self: center; font-size: 10px; padding: 0 6px; margin-top: 4px; }
+
+/* Escala: usa a largura toda da tela para caber o máximo de cultos */
+main.wrap:has(.esc-full) { max-width: none; padding: 0 16px; }
+.wrap:has(.esc-full) .eg th, .wrap:has(.esc-full) .eg td { padding: 6px 7px; }
+.wrap:has(.esc-full) .eg .colh { min-width: 78px; padding: 6px; }
+.wrap:has(.esc-full) .eg .colh .tt { max-width: 96px; font-size: 11px; }
+.wrap:has(.esc-full) .eg tbody th { min-width: 96px; font-size: 14px; }
