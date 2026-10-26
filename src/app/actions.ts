@@ -350,13 +350,6 @@ export async function setMemberAccess(memberId: number, access: Access) {
   revalidatePath("/", "layout");
 }
 
-/** Zera o PIN (a pessoa cria outro no próximo acesso) e desconecta os aparelhos dela. */
-export async function resetPin(memberId: number) {
-  await requireLevel("lider");
-  await run("UPDATE members SET pin_hash='', pin_fails=0, pin_until='', token=? WHERE id=?", [newToken(), memberId]);
-  revalidatePath("/", "layout");
-}
-
 /** Troca a senha do grupo; quem ainda não entrou precisa da nova (quem já entrou continua). */
 export async function setTeamPassword(f: FormData) {
   await requireLevel("lider");

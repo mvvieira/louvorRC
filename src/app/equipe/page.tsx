@@ -2,7 +2,7 @@ import { pageUser, teamPassword } from "@/lib/auth";
 import { all, type Member } from "@/lib/db";
 import { ddmm, today } from "@/lib/format";
 import { FUNCOES } from "@/lib/roles";
-import { deleteMember, resetPin, saveMember, setMemberAccess, setTeamPassword } from "../actions";
+import { deleteMember, saveMember, setMemberAccess, setTeamPassword } from "../actions";
 import MemberCard from "./MemberCard";
 
 export const dynamic = "force-dynamic";
@@ -37,15 +37,14 @@ export default async function Equipe() {
           <button className="btn">Salvar senha</button>
         </form>
         <p className="muted">
-          Mande essa senha no grupo do WhatsApp. Cada pessoa entra com ela e toca no próprio nome; <b>ministros</b> e <b>liderança</b> criam
-          um PIN de 4 números no primeiro acesso. <b>Liderança</b> edita tudo · <b>Ministro</b> monta repertórios · <b>Banda</b> consulta e marca a
-          própria disponibilidade. Esqueceu o PIN? Use “Zerar PIN”.
+          Mande essa senha no grupo do WhatsApp. Cada pessoa entra com ela e toca no próprio nome.
+          {" "}<b>Liderança</b> edita tudo · <b>Ministro</b> monta repertórios · <b>Banda</b> consulta e marca a própria disponibilidade.
         </p>
       </div>
       <div className="team">
         {members.map((m) => (
           <MemberCard key={m.id} member={m} funcoes={FUNCOES} meta={meta(Number(m.id))} save={saveMember} remove={deleteMember}
-            self={Number(m.id) === me.id} hasPin={!!m.pin_hash} setAccess={setMemberAccess} resetPin={resetPin} />
+            self={Number(m.id) === me.id} setAccess={setMemberAccess} />
         ))}
       </div>
       {members.length === 0 && (

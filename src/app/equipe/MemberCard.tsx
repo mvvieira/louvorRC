@@ -5,7 +5,7 @@ import { splitRoles } from "@/lib/roles";
 
 const NIVEIS: [Access, string][] = [["lider", "Liderança"], ["ministro", "Ministro"], ["banda", "Banda"]];
 
-export default function MemberCard({ member, funcoes, meta, save, remove, self, hasPin, setAccess, resetPin }: {
+export default function MemberCard({ member, funcoes, meta, save, remove, self, setAccess }: {
   member: Member;
   funcoes: string[];
   meta: string;
@@ -13,10 +13,7 @@ export default function MemberCard({ member, funcoes, meta, save, remove, self, 
   remove: (f: FormData) => Promise<void>;
   /** é quem está usando o app (não pode tirar a própria liderança) */
   self: boolean;
-  /** já criou o PIN (ministro/liderança) */
-  hasPin: boolean;
   setAccess: (id: number, a: Access) => Promise<void>;
-  resetPin: (id: number) => Promise<void>;
 }) {
   const [name, setName] = useState(member.name);
   const [phone, setPhone] = useState(member.phone);
@@ -67,12 +64,6 @@ export default function MemberCard({ member, funcoes, meta, save, remove, self, 
           onChange={(e) => start(() => setAccess(member.id, e.target.value as Access))}>
           {NIVEIS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
-        {member.access !== "banda" && (hasPin ? (
-          <button type="button" className="btn ghost small"
-            onClick={() => { if (confirm(`Zerar o PIN de ${member.name}? No próximo acesso a pessoa cria um novo.`)) start(() => resetPin(member.id)); }}>
-            Zerar PIN
-          </button>
-        ) : <span className="muted small-note">PIN ainda não criado</span>)}
       </div>
     </div>
   );

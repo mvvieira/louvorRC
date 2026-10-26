@@ -5,7 +5,7 @@ import { cache } from "react";
 import { one, type Access } from "./db";
 
 /*
- * Entrada: senha do grupo (cookie rc_equipe) → a pessoa toca no nome → ministro e liderança confirmam com PIN.
+ * Entrada: senha do grupo (cookie rc_equipe) → a pessoa toca no próprio nome.
  * Depois disso o cookie rc_acesso guarda o segredo de sessão da pessoa; o nível vem da pessoa na Equipe.
  */
 
@@ -66,17 +66,4 @@ export const teamKey = (pass: string) => crypto.createHash("sha256").update(`rc-
 export async function teamOk(): Promise<boolean> {
   const c = (await cookies()).get(TEAM_COOKIE)?.value;
   return !!c && c === teamKey(await teamPassword());
-}
-
-/* ---------- PIN de ministros e liderança ---------- */
-
-export function hashPin(pin: string): string {
-  const salt = crypto.randomBytes(16).toString("hex");
-  return `${salt}:${crypto.scryptSync(pin, salt, 32).toString("hex")}`;
-}
-
-export function checkPin(pin: string, stored: string): boolean {
-  const [salt, hash] = stored.split(":");
-  if (!salt || !hash) return false;
-  return crypto.timingSafeEqual(Buffer.from(hash, "hex"), crypto.scryptSync(pin, salt, 32));
 }

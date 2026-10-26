@@ -1,9 +1,9 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { enterPin, enterTeam, pickMember } from "./actions";
+import { enterTeam, pickMember } from "./actions";
 
-type P = { id: number; name: string; roles: string; pin: boolean };
+type P = { id: number; name: string; roles: string };
 
 export default function Entrar({ team, people }: { team: boolean; people: P[] }) {
   const router = useRouter();
@@ -11,8 +11,6 @@ export default function Entrar({ team, people }: { team: boolean; people: P[] })
   const [err, setErr] = useState("");
   const [pass, setPass] = useState("");
   const [q, setQ] = useState("");
-  const [pinFor, setPinFor] = useState<{ id: number; name: string; mode: "create" | "enter" } | null>(null);
-  const [pin, setPin] = useState("");
 
   const go = () => { router.replace("/calendario"); router.refresh(); };
 
@@ -33,31 +31,6 @@ export default function Entrar({ team, people }: { team: boolean; people: P[] })
     );
   }
 
-  if (pinFor) {
-    return (
-      <form className="sheet login" onSubmit={(e) => {
-        e.preventDefault();
-        start(async () => {
-          const r = await enterPin(pinFor.id, pin);
-          if ("done" in r) go(); else { setErr(r.error); setPin(""); }
-        });
-      }}>
-        <h2>{pinFor.name}</h2>
-        <p className="muted">
-          {pinFor.mode === "create"
-            ? "Primeiro acesso: crie um PIN de 4 números. Ele protege o seu acesso de ministro/liderança."
-            : "Digite o seu PIN de 4 números."}
-        </p>
-        <input className="pin" type="password" inputMode="numeric" pattern="\d{4}" maxLength={4} value={pin}
-          onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="••••" aria-label="PIN" autoFocus />
-        {err && <p className="no-t">{err}</p>}
-        <button className="btn primary" disabled={pending || pin.length !== 4}>{pending ? "Conferindo…" : pinFor.mode === "create" ? "Criar PIN e entrar" : "Entrar"}</button>
-        <button type="button" className="btn ghost small" onClick={() => { setPinFor(null); setPin(""); setErr(""); }}>Não sou {pinFor.name}</button>
-        {pinFor.mode === "enter" && <p className="muted small">Esqueceu o PIN? Peça para a liderança zerar na aba Equipe.</p>}
-      </form>
-    );
-  }
-
   const nq = q.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const shown = people.filter((p) => !nq || p.name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(nq));
   return (
@@ -70,14 +43,11 @@ export default function Entrar({ team, people }: { team: boolean; people: P[] })
         {shown.map((p) => (
           <li key={p.id}>
             <button type="button" className="who-btn" disabled={pending} onClick={() => start(async () => {
-              const r = await pickMember(p.id);
-              if ("done" in r) go();
-              else if ("pin" in r) { setErr(""); setPinFor({ id: p.id, name: r.name, mode: r.pin }); }
-              else { setErr(r.error); router.refresh(); }
+              if (await pickMember(p.id)) go();
+              else { setErr("Digite a senha do grupo de novo."); router.refresh(); }
             })}>
               <b>{p.name}</b>
               <span className="muted">{p.roles || "—"}</span>
-              {p.pin && <span className="chip">🔒 PIN</span>}
             </button>
           </li>
         ))}
