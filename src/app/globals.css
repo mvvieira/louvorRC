@@ -496,3 +496,21 @@ h3 { text-transform: uppercase; letter-spacing: .02em; }
 .acc-log li { display: grid; grid-template-columns: 110px 140px 1fr auto; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line); font-size: 14px; align-items: center; }
 .acc-log li:last-child { border-bottom: 0; }
 @media (max-width: 640px) { .acc-log li { grid-template-columns: 1fr auto; } .acc-log li > :nth-child(3) { grid-column: 1 / -1; } }
+
+/* Relatórios: acompanhamento da disponibilidade */
+.rel-sub { margin: -4px 0 14px; font-size: 14px; }
+.rel-bar { display: flex; height: 12px; border-radius: 99px; overflow: hidden; background: var(--field); border: 1px solid var(--line); margin: 4px 0 6px; }
+.rel-bar i { display: block; height: 100%; }
+.rel-bar .ok { background: var(--ok); }
+.rel-bar .mid { background: var(--warn); }
+.rel-cov td { font-size: 14px; }
+.rel-cov td b { font-size: 16px; }
+.rel-cov td.cov-ok { background: color-mix(in srgb, var(--ok) 18%, var(--paper)); }
+.rel-cov td.cov-wait { background: color-mix(in srgb, var(--warn) 18%, var(--paper)); }
+.rel-cov td.cov-bad { background: color-mix(in srgb, #E5484D 22%, var(--paper)); }
+.rel-legend { font-size: 13px; margin-top: 8px; }
+.rel-legend span { padding: 0 6px; border-radius: 6px; }
+.rel-legend .cov-ok { background: color-mix(in srgb, var(--ok) 25%, var(--paper)); }
+.rel-legend .cov-wait { background: color-mix(in srgb, var(--warn) 25%, var(--paper)); }
+.rel-legend .cov-bad { background: color-mix(in srgb, #E5484D 30%, var(--paper)); }
+.rel-ready { justify-self: center; font-size: 10px; padding: 0 6px; margin-top: 4px; }
