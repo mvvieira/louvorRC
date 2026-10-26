@@ -3,7 +3,11 @@ import Link from "next/link";
 import { currentUser, seesAccessLog } from "@/lib/auth";
 import { logout } from "./actions";
 import NavTabs from "./NavTabs";
+import { cookies } from "next/headers";
 import "./globals.css";
+// temas alternativos em prévia (só valem com o cookie rc_tema; o oficial é o globals.css)
+import "./temas/sereno.css";
+import "./temas/noite.css";
 
 export const metadata: Metadata = { title: "Louvor Rasgando os Céus", description: "Repertório, cifras, vozes e escala do Louvor Rasgando os Céus" };
 
@@ -30,8 +34,9 @@ function Logo() {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const me = await currentUser();
   const admin = await seesAccessLog(me);
+  const tema = (await cookies()).get("rc_tema")?.value;
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" data-tema={tema === "sereno" || tema === "noite" ? tema : undefined}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />

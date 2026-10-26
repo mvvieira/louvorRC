@@ -1,0 +1,25 @@
+/*
+ * Tema "Noite" (prévia): escuro e neutro, cinzas frios, um único destaque azul suave; sem laranja.
+ * Só cores — fontes, layout e dados iguais ao oficial. Ativado por /tema/noite.
+ */
+:root[data-tema="noite"] {
+  --sky: #0F1115; --paper: #161A20; --field: #1C2128; --line: #2A313B;
+  --ink: #E6E8EB; --ink-2: #98A2AE;
+  --flame: #8AB4E8; --flame-soft: #1C2A3A; --on-flame: #0F1115; --brand: #8AB4E8;
+  --male: #8AB4E8; --female: #D49AB8; --ok: #6FBF9A; --warn: #D9A65A; --cream: #C8B898;
+  --t-dom: #8AB4E8; --t-int: #8AB4E8; --t-qui: #8AB4E8; --t-bat: #8AB4E8; --t-esp: #8AB4E8;
+  --bar: #0B0D10;
+  --me: #D9B45B; --me-ink: #1A1405; --me-soft: #221E14; --me-col: #2A2416;
+  color-scheme: dark;
+}
+:root[data-tema="noite"] header.top { color: var(--ink); border-bottom: 1px solid var(--line); }
+:root[data-tema="noite"] .brand h1 { color: var(--ink); }
+:root[data-tema="noite"] .brand h1 small { color: var(--ink-2); }
+:root[data-tema="noite"] nav.tabs a { color: var(--ink-2); }
+:root[data-tema="noite"] nav.tabs a:hover { color: var(--ink); }
+:root[data-tema="noite"] nav.tabs a[aria-current="page"] { background: var(--flame-soft); color: var(--flame); }
+:root[data-tema="noite"] .today-card,
+:root[data-tema="noite"] .who-sum,
+:root[data-tema="noite"] .access-box,
+:root[data-tema="noite"] .edit-hint { border-left-width: 3px; }
+:root[data-tema="noite"] .rel-cov td.cov-bad { background: #3A1E22; }
