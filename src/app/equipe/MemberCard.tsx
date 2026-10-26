@@ -12,16 +12,15 @@ export default function MemberCard({ member, funcoes, meta, save, remove }: {
   remove: (f: FormData) => Promise<void>;
 }) {
   const [name, setName] = useState(member.name);
-  const [phone, setPhone] = useState(member.phone);
   const [roles, setRoles] = useState(splitRoles(member.roles));
   const [, start] = useTransition();
   const all = [...new Set([...funcoes, ...roles])];
 
-  const persist = (next: { name?: string; phone?: string; roles?: string[] } = {}) => {
+  const persist = (next: { name?: string; roles?: string[] } = {}) => {
     const f = new FormData();
     f.set("id", String(member.id));
     f.set("name", (next.name ?? name).trim() || member.name);
-    f.set("phone", next.phone ?? phone);
+    f.set("phone", member.phone); // campo de WhatsApp oculto por enquanto: mantém o que já estava salvo
     f.set("roles", (next.roles ?? roles).join(", "));
     start(() => save(f));
   };
@@ -50,9 +49,6 @@ export default function MemberCard({ member, funcoes, meta, save, remove }: {
             }}>{r}</button>
         ))}
       </div>
-      <input type="tel" className="phone" value={phone} placeholder="WhatsApp" aria-label="WhatsApp"
-        onChange={(e) => setPhone(e.target.value)}
-        onBlur={() => phone !== member.phone && persist()} />
       <div className="meta">{meta}</div>
     </div>
   );
