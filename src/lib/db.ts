@@ -10,13 +10,24 @@ const url = process.env.DATABASE_URL || "file:data/louvor.db";
 declare global {
   // eslint-disable-next-line no-var
   var __db: Promise<Client> | undefined;
+  // eslint-disable-next-line no-var
+  var __migrated: boolean | undefined;
 }
 
-async function init(): Promise<Client> {
+/** Abre a conexão; as tabelas e ajustes do banco rodam só na primeira vez de cada servidor. */
+async function connect(): Promise<Client> {
   if (url.startsWith("file:")) {
     fs.mkdirSync(path.dirname(url.slice(5)), { recursive: true });
   }
   const client = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN });
+  if (!globalThis.__migrated) {
+    await migrate(client);
+    globalThis.__migrated = true;
+  }
+  return client;
+}
+
+async function migrate(client: Client) {
   await client.batch(
     [
       `CREATE TABLE IF NOT EXISTS songs (
@@ -69,7 +80,6 @@ async function init(): Promise<Client> {
   await migrateAccess(client);
   const { rows } = await client.execute("SELECT COUNT(*) AS n FROM songs");
   if (Number(rows[0].n) === 0) await seed(client);
-  return client;
 }
 
 /**
@@ -130,27 +140,47 @@ async function seed(client: Client) {
 }
 
 export function db(): Promise<Client> {
-  if (!globalThis.__db) globalThis.__db = init();
+  if (!globalThis.__db) {
+    const p = connect();
+    globalThis.__db = p;
+    // se a conexão falhar, a próxima visita tenta de novo (em vez de ficar presa no erro)
+    p.catch(() => { if (globalThis.__db === p) globalThis.__db = undefined; });
+  }
   return globalThis.__db;
 }
 
-/**
- * O Turso às vezes fecha a conexão parada entre uma visita e outra ("fetch failed / other side closed").
- * Leituras tentam de novo uma vez; gravações não, para nunca duplicar dados.
+/*
+ * Na Vercel o servidor guarda a conexão entre visitas e o Turso às vezes a derruba
+ * ("fetch failed / other side closed / connect timeout"). Nesse caso descartamos o cliente e abrimos um novo.
+ * Leituras tentam de novo; gravações só quando o pedido nem chegou a sair (para nunca duplicar dados).
  */
-async function retryRead<T>(f: () => Promise<T>): Promise<T> {
+const errText = (e: unknown) => {
+  const c = (e as { cause?: { code?: string; message?: string } })?.cause;
+  return `${(e as Error)?.message ?? ""} ${c?.code ?? ""} ${c?.message ?? ""}`;
+};
+const isNetError = (e: unknown) => /fetch failed|other side closed|ECONNRESET|UND_ERR_|ETIMEDOUT|ECONNREFUSED/i.test(errText(e));
+const notSent = (e: unknown) => /UND_ERR_CONNECT_TIMEOUT|ECONNREFUSED|ENOTFOUND|EAI_AGAIN/i.test(errText(e));
+
+async function freshClient(): Promise<Client> {
+  const old = globalThis.__db;
+  globalThis.__db = undefined;
+  old?.then((c) => c.close()).catch(() => {});
+  return db();
+}
+
+async function exec(sql: string, args: InValue[], read: boolean) {
   try {
-    return await f();
+    return await (await db()).execute({ sql, args });
   } catch (e) {
-    const msg = `${(e as Error)?.message ?? ""} ${String((e as { cause?: unknown })?.cause ?? "")}`;
-    if (!/fetch failed|other side closed|ECONNRESET|UND_ERR_SOCKET/i.test(msg)) throw e;
-    return f();
+    if (!isNetError(e)) throw e;
+    const c = await freshClient();
+    if (!read && !notSent(e)) throw e;
+    return c.execute({ sql, args });
   }
 }
 
 export async function all<T>(sql: string, args: InValue[] = []): Promise<T[]> {
-  const c = await db();
-  const r = await retryRead(() => c.execute({ sql, args }));
+  const r = await exec(sql, args, true);
   return r.rows.map((row) => ({ ...row }) as T);
 }
 
@@ -159,8 +189,7 @@ export async function one<T>(sql: string, args: InValue[] = []): Promise<T | und
 }
 
 export async function run(sql: string, args: InValue[] = []) {
-  const c = await db();
-  return c.execute({ sql, args });
+  return exec(sql, args, false);
 }
 
 export type Song = {
