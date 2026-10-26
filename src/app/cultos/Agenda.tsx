@@ -10,11 +10,12 @@ export default function Agenda({ up, past, lider }: { up: AgendaItem[]; past: Ag
     const href = `/cultos/${s.id}`;
     const n = Number(s.n);
     return (
-      <li key={s.id} className={isPast ? "past" : undefined}>
+      <li key={s.id} className={[isPast && "past", s.mine && "mine"].filter(Boolean).join(" ") || undefined}>
         <Link href={href} aria-current={path === href ? "page" : undefined}>
           <span className="dday"><b>{s.date.slice(8, 10) || "–"}</b><span>{dayName(s.date)}</span></span>
           <span>
             <span className="t">{s.title || "Culto sem nome"}</span><br />
+            {s.mine && <span className="ev-you">★ Você · {s.mine}</span>}
             <span className="s">{n} música{n === 1 ? "" : "s"}</span>
           </span>
         </Link>
