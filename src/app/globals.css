@@ -456,6 +456,9 @@ h3 { text-transform: uppercase; letter-spacing: .02em; }
 .cal-d.mine.out { opacity: .8; }
 .ev.mine { background: var(--paper); box-shadow: 0 0 0 2px var(--me); }
 .ev-you { justify-self: start; background: var(--me); color: var(--me-ink); border-radius: 999px; padding: 0 7px; font-size: 11px; font-weight: 800; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cal-list li.mine { border: 2px solid var(--me); background: var(--me-soft); }
+.cal-list li.mine { opacity: 1; border: 2px solid var(--me); background: var(--me-soft); box-shadow: inset 5px 0 0 var(--me); }
+.cal-list li.mine .dday { background: var(--me); color: var(--me-ink); }
+.cal-list li.mine .dday span { color: inherit; }
+.cal-d.mine.past .ev.mine { opacity: 1; }
 .today-mine { margin: 6px 0 0; font-size: 14px; }
 .today-mine .you-dot { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: var(--me); color: var(--me-ink); font-size: 12px; margin-right: 6px; }
