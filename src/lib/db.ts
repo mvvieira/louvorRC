@@ -103,6 +103,16 @@ async function migrateAccess(client: Client) {
   await client.batch(
     [
       "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+      // log de acesso (só o administrador vê): entradas e páginas abertas
+      `CREATE TABLE IF NOT EXISTS access_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        member_id INTEGER NOT NULL,
+        at TEXT NOT NULL DEFAULT (datetime('now')),
+        kind TEXT NOT NULL,
+        path TEXT NOT NULL DEFAULT '',
+        device TEXT NOT NULL DEFAULT ''
+      )`,
+      "CREATE INDEX IF NOT EXISTS access_log_member_at ON access_log (member_id, at)",
       // senha inicial do grupo; a liderança troca na aba Equipe
       "INSERT OR IGNORE INTO settings (key, value) VALUES ('team_password', 'rasgando')",
       // dono do app: o único que troca a senha do grupo

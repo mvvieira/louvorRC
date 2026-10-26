@@ -1,6 +1,8 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { after } from "next/server";
+import { logEntry } from "@/lib/access";
 import { checkSecret, COOKIE, normPass, TEAM_COOKIE, teamKey, teamOk, teamPassword, YEAR } from "@/lib/auth";
 import { one, run } from "@/lib/db";
 
@@ -9,6 +11,12 @@ const LOCK_AFTER = 5, LOCK_MIN = 15;
 
 async function setCookie(name: string, value: string) {
   (await cookies()).set(name, value, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: YEAR });
+}
+
+/** Registra a entrada no log de acesso (depois de responder). */
+async function logged(id: number) {
+  const ua = (await headers()).get("user-agent") ?? "";
+  after(() => logEntry(id, ua).catch(() => {}));
 }
 
 async function who(id: number): Promise<Who | undefined> {
@@ -30,6 +38,7 @@ export async function pickMember(id: number): Promise<"in" | "password" | "again
   if (!m) return "again";
   if (m.pin_hash) return "password";
   await setCookie(COOKIE, m.token);
+  await logged(m.id);
   return "in";
 }
 
@@ -48,5 +57,6 @@ export async function enterPassword(id: number, pass: string): Promise<{ ok: tru
   }
   await run("UPDATE members SET pin_fails=0, pin_until='' WHERE id=?", [m.id]);
   await setCookie(COOKIE, m.token);
+  await logged(m.id);
   return { ok: true };
 }

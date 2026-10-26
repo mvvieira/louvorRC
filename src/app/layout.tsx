@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { currentUser } from "@/lib/auth";
+import { currentUser, isAdmin } from "@/lib/auth";
 import { logout } from "./actions";
 import NavTabs from "./NavTabs";
 import "./globals.css";
@@ -29,6 +29,7 @@ function Logo() {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const me = await currentUser();
+  const admin = await isAdmin(me);
   return (
     <html lang="pt-BR">
       <head>
@@ -46,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Logo />
               <h1><small>LOUVOR</small>Rasgando os Céus</h1>
             </Link>
-            {me && <NavTabs lider={me.access === "lider"} />}
+            {me && <NavTabs lider={me.access === "lider"} admin={admin} />}
           </div>
         </header>
         {me && (

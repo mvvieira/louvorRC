@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { logPage } from "./access";
 import { cache } from "react";
 import { one, type Access } from "./db";
 
@@ -42,10 +44,14 @@ export async function requireSelf(memberId: number): Promise<User> {
 }
 
 /** Para páginas: exige alguém conectado (senão, tela de entrada); com `level`, volta ao calendário quem não tem o nível. */
-export async function pageUser(level: Access = "banda"): Promise<User> {
+export async function pageUser(level: Access = "banda", log = true): Promise<User> {
   const u = await currentUser();
   if (!u) redirect("/entrar");
   if (!can(u, level)) redirect("/calendario");
+  const h = await headers();
+  const path = h.get("x-path") ?? "", ua = h.get("user-agent") ?? "";
+  // grava depois de entregar a página (não deixa o app mais lento; erro no log não derruba a página)
+  if (log && path) after(() => logPage(u.id, path, ua).catch(() => {}));
   return u;
 }
 

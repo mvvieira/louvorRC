@@ -478,3 +478,21 @@ h3 { text-transform: uppercase; letter-spacing: .02em; }
 .ccard .you { background: var(--me); color: var(--me-ink); font-weight: 800; border-radius: 5px; padding: 0 5px; }
 .pass-ro { margin: 0; font-size: 15px; }
 .pass-ro b { font-family: ui-monospace, Menlo, monospace; background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 2px 8px; }
+
+/* Acessos (só o administrador) */
+.acessos h2 { font-size: 30px; margin-right: auto; }
+.acessos > .muted { margin: -4px 0 14px; font-size: 14px; }
+.acc-nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 8px; }
+.acc-nums div { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; }
+.acc-nums b { font-family: var(--display); font-stretch: 80%; font-size: 34px; line-height: 1; color: var(--flame); }
+.acc-nums span { font-size: 14px; color: var(--ink-2); }
+.acc-never { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.acc-table { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; }
+.acc-table table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.acc-table th, .acc-table td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.acc-table th { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); }
+.acc-table .muted { font-size: 12px; }
+.acc-log { list-style: none; margin: 0; padding: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; }
+.acc-log li { display: grid; grid-template-columns: 110px 140px 1fr auto; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line); font-size: 14px; align-items: center; }
+.acc-log li:last-child { border-bottom: 0; }
+@media (max-width: 640px) { .acc-log li { grid-template-columns: 1fr auto; } .acc-log li > :nth-child(3) { grid-column: 1 / -1; } }
