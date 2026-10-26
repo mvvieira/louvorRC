@@ -1,19 +1,15 @@
 "use client";
 import { useState, useTransition } from "react";
-import type { Access, Member } from "@/lib/db";
+import type { Member } from "@/lib/db";
 import { splitRoles } from "@/lib/roles";
 
-const NIVEIS: [Access, string][] = [["lider", "Liderança"], ["ministro", "Ministro"], ["banda", "Banda"]];
 
-export default function MemberCard({ member, funcoes, meta, save, remove, self, setAccess }: {
+export default function MemberCard({ member, funcoes, meta, save, remove }: {
   member: Member;
   funcoes: string[];
   meta: string;
   save: (f: FormData) => Promise<void>;
   remove: (f: FormData) => Promise<void>;
-  /** é quem está usando o app (não pode tirar a própria liderança) */
-  self: boolean;
-  setAccess: (id: number, a: Access) => Promise<void>;
 }) {
   const [name, setName] = useState(member.name);
   const [phone, setPhone] = useState(member.phone);
@@ -58,13 +54,6 @@ export default function MemberCard({ member, funcoes, meta, save, remove, self, 
         onChange={(e) => setPhone(e.target.value)}
         onBlur={() => phone !== member.phone && persist()} />
       <div className="meta">{meta}</div>
-      <div className="access">
-        <select value={member.access} disabled={self} aria-label={`Nível de ${member.name}`}
-          title={self ? "Você não pode mudar o próprio nível" : undefined}
-          onChange={(e) => start(() => setAccess(member.id, e.target.value as Access))}>
-          {NIVEIS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
-      </div>
     </div>
   );
 }

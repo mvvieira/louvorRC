@@ -433,8 +433,6 @@ h3 { text-transform: uppercase; letter-spacing: .02em; }
 .song-ro { padding: 22px; }
 .song-ro h2 { font-size: 28px; }
 .song-ro .links-state { display: flex; gap: 8px; flex-wrap: wrap; }
-.member .access { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
-.member .access select { font-size: 13px; padding: 4px 8px; }
 .login { max-width: 440px; margin: 32px auto; display: grid; gap: 12px; }
 .login.wide { max-width: 900px; }
 .login h2 { font-size: 28px; }

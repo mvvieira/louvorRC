@@ -2,13 +2,13 @@ import { pageUser, teamPassword } from "@/lib/auth";
 import { all, type Member } from "@/lib/db";
 import { ddmm, today } from "@/lib/format";
 import { FUNCOES } from "@/lib/roles";
-import { deleteMember, saveMember, setMemberAccess, setTeamPassword } from "../actions";
+import { deleteMember, saveMember, setTeamPassword } from "../actions";
 import MemberCard from "./MemberCard";
 
 export const dynamic = "force-dynamic";
 
 export default async function Equipe() {
-  const me = await pageUser("lider");
+  await pageUser("lider");
   const pass = await teamPassword();
   const members = await all<Member>("SELECT * FROM members ORDER BY name");
   const upcoming = await all<{ member_id: number; date: string; role: string }>(
@@ -38,13 +38,11 @@ export default async function Equipe() {
         </form>
         <p className="muted">
           Mande essa senha no grupo do WhatsApp. Cada pessoa entra com ela e toca no próprio nome.
-          {" "}<b>Liderança</b> edita tudo · <b>Ministro</b> monta repertórios · <b>Banda</b> consulta e marca a própria disponibilidade.
         </p>
       </div>
       <div className="team">
         {members.map((m) => (
-          <MemberCard key={m.id} member={m} funcoes={FUNCOES} meta={meta(Number(m.id))} save={saveMember} remove={deleteMember}
-            self={Number(m.id) === me.id} setAccess={setMemberAccess} />
+          <MemberCard key={m.id} member={m} funcoes={FUNCOES} meta={meta(Number(m.id))} save={saveMember} remove={deleteMember} />
         ))}
       </div>
       {members.length === 0 && (
