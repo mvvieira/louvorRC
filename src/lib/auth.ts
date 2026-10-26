@@ -1,11 +1,17 @@
+import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { one, type Access } from "./db";
 
-/* Acesso por link pessoal: o cookie guarda o segredo do link; o nível vem da pessoa na Equipe. */
+/*
+ * Entrada: senha do grupo (cookie rc_equipe) → a pessoa toca no nome → ministro e liderança confirmam com PIN.
+ * Depois disso o cookie rc_acesso guarda o segredo de sessão da pessoa; o nível vem da pessoa na Equipe.
+ */
 
 export const COOKIE = "rc_acesso";
+export const TEAM_COOKIE = "rc_equipe";
+export const YEAR = 60 * 60 * 24 * 365;
 export type User = { id: number; name: string; access: Access };
 
 const RANK: Record<Access, number> = { banda: 1, ministro: 2, lider: 3 };
@@ -36,10 +42,41 @@ export async function requireSelf(memberId: number): Promise<User> {
   return u;
 }
 
-/** Para páginas: exige alguém logado (link revogado → tela "sem acesso"); com `level`, volta ao calendário quem não tem o nível. */
+/** Para páginas: exige alguém conectado (senão, tela de entrada); com `level`, volta ao calendário quem não tem o nível. */
 export async function pageUser(level: Access = "banda"): Promise<User> {
   const u = await currentUser();
-  if (!u) redirect("/sem-acesso?invalido=1");
+  if (!u) redirect("/entrar");
   if (!can(u, level)) redirect("/calendario");
   return u;
+}
+
+/* ---------- Senha do grupo ---------- */
+
+export async function teamPassword(): Promise<string> {
+  return (await one<{ value: string }>("SELECT value FROM settings WHERE key='team_password'"))?.value ?? "";
+}
+
+/** Sem diferença de maiúsculas e espaços, para ninguém errar no celular. */
+export const normPass = (p: string) => p.trim().toLowerCase();
+
+/** O que fica no cookie depois de acertar a senha (troca de senha derruba os cookies antigos). */
+export const teamKey = (pass: string) => crypto.createHash("sha256").update(`rc-louvor:${normPass(pass)}`).digest("hex");
+
+/** Este aparelho já passou pela senha do grupo (a atual)? */
+export async function teamOk(): Promise<boolean> {
+  const c = (await cookies()).get(TEAM_COOKIE)?.value;
+  return !!c && c === teamKey(await teamPassword());
+}
+
+/* ---------- PIN de ministros e liderança ---------- */
+
+export function hashPin(pin: string): string {
+  const salt = crypto.randomBytes(16).toString("hex");
+  return `${salt}:${crypto.scryptSync(pin, salt, 32).toString("hex")}`;
+}
+
+export function checkPin(pin: string, stored: string): boolean {
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  return crypto.timingSafeEqual(Buffer.from(hash, "hex"), crypto.scryptSync(pin, salt, 32));
 }

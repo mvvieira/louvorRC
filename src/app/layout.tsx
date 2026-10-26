@@ -52,7 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {me && (
           <div className="wrap me-bar">
             <span><b>{me.name}</b> · {ACCESS_NAME[me.access]}</span>
-            <form action={logout}><button className="btn ghost small">Sair</button></form>
+            <form action={logout}><button className="btn ghost small">Trocar de pessoa</button></form>
           </div>
         )}
         <main className="wrap">{children}</main>

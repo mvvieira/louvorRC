@@ -73,7 +73,8 @@ async function init(): Promise<Client> {
 }
 
 /**
- * Níveis de acesso (liderança, ministro, banda) e o link secreto de cada pessoa.
+ * Níveis de acesso (liderança, ministro, banda), PIN de quem edita, senha do grupo
+ * e o segredo de sessão de cada pessoa (`token`, guardado no cookie depois de entrar).
  * Na primeira vez: ministro = quem já foi escalado como Ministro; liderança definida pela equipe.
  */
 async function migrateAccess(client: Client) {
@@ -89,13 +90,26 @@ async function migrateAccess(client: Client) {
       "write",
     );
   }
+  if (!cols.rows.some((r) => r.name === "pin_hash")) {
+    await client.batch(
+      [
+        "ALTER TABLE members ADD COLUMN pin_hash TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN pin_fails INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE members ADD COLUMN pin_until TEXT NOT NULL DEFAULT ''",
+        "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+        // senha inicial do grupo; a liderança troca na aba Equipe
+        "INSERT OR IGNORE INTO settings (key, value) VALUES ('team_password', 'rasgando')",
+      ],
+      "write",
+    );
+  }
   const empty = await client.execute("SELECT id FROM members WHERE token=''");
   if (empty.rows.length) {
     await client.batch(empty.rows.map((r) => ({ sql: "UPDATE members SET token=? WHERE id=?", args: [newToken(), r.id] })), "write");
   }
 }
 
-/** Segredo do link de acesso (impossível de adivinhar). */
+/** Segredo de sessão (impossível de adivinhar). */
 export function newToken(): string {
   return crypto.randomBytes(24).toString("base64url");
 }
@@ -149,5 +163,5 @@ export type Song = {
   notes: string;
 };
 export type Access = "lider" | "ministro" | "banda";
-export type Member = { id: number; name: string; roles: string; phone: string; active: number; access: Access; token: string };
+export type Member = { id: number; name: string; roles: string; phone: string; active: number; access: Access; token: string; pin_hash: string };
 export type Service = { id: number; date: string; title: string; notes: string };

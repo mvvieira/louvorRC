@@ -435,3 +435,17 @@ h3 { text-transform: uppercase; letter-spacing: .02em; }
 .song-ro .links-state { display: flex; gap: 8px; flex-wrap: wrap; }
 .member .access { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
 .member .access select { font-size: 13px; padding: 4px 8px; }
+.login { max-width: 440px; margin: 32px auto; display: grid; gap: 12px; }
+.login.wide { max-width: 900px; }
+.login h2 { font-size: 28px; }
+.login p { margin: 0; }
+.login .pin { font-size: 32px; letter-spacing: .5em; text-align: center; }
+.login .small { font-size: 13px; }
+.who-btn { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--field); color: var(--ink); }
+.who-btn:hover, .who-btn:focus-visible { border-color: var(--flame); }
+.who-btn .muted { grid-column: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who-btn .chip { grid-row: 1 / span 2; grid-column: 2; }
+.access-box { background: var(--paper); border: 1px solid var(--line); border-left: 4px solid var(--flame); border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; display: grid; gap: 8px; }
+.access-box .tools { margin: 0; align-items: end; }
+.access-box p { margin: 0; font-size: 14px; }
+.small-note { font-size: 12px; }

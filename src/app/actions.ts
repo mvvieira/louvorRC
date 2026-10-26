@@ -336,9 +336,10 @@ export async function applyDistribution(month: string, picks: { service_id: numb
 
 /* ---------- Acesso ---------- */
 
+/** Sai deste celular (a senha do grupo continua lembrada: é só tocar no nome de novo). */
 export async function logout() {
   (await cookies()).delete(COOKIE);
-  redirect("/sem-acesso");
+  redirect("/entrar");
 }
 
 /** Liderança muda o nível de alguém (não dá para tirar a própria liderança por engano). */
@@ -349,9 +350,18 @@ export async function setMemberAccess(memberId: number, access: Access) {
   revalidatePath("/", "layout");
 }
 
-/** Gera um link novo para a pessoa; o antigo para de funcionar. */
-export async function renewMemberLink(memberId: number) {
+/** Zera o PIN (a pessoa cria outro no próximo acesso) e desconecta os aparelhos dela. */
+export async function resetPin(memberId: number) {
   await requireLevel("lider");
-  await run("UPDATE members SET token=? WHERE id=?", [newToken(), memberId]);
+  await run("UPDATE members SET pin_hash='', pin_fails=0, pin_until='', token=? WHERE id=?", [newToken(), memberId]);
+  revalidatePath("/", "layout");
+}
+
+/** Troca a senha do grupo; quem ainda não entrou precisa da nova (quem já entrou continua). */
+export async function setTeamPassword(f: FormData) {
+  await requireLevel("lider");
+  const pass = str(f, "pass");
+  if (pass.length < 4) return;
+  await run("INSERT INTO settings (key, value) VALUES ('team_password', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [pass]);
   revalidatePath("/", "layout");
 }
