@@ -43,7 +43,6 @@ export default async function Escala({ searchParams }: { searchParams: Promise<{
   const at = (sid: number, role?: string) => slots.filter((s) => Number(s.service_id) === sid && (!role || roleOf(s) === role));
   const extra = [...new Set(slots.map(roleOf))].filter((r) => !FUNCOES.includes(r));
   const fs = [...FUNCOES, ...extra].filter((r) => edit || slots.some((s) => roleOf(s) === r));
-  const tipos = [...new Map(cs.map((c) => serviceType(c.title))).entries()];
   const hasMe = (c: Service) => at(Number(c.id)).some((s) => Number(s.member_id) === me);
   const person = people.find((p) => Number(p.id) === me);
   const mine = cs.filter(hasMe);
@@ -116,10 +115,6 @@ export default async function Escala({ searchParams }: { searchParams: Promise<{
           Modo edição: escolha outra pessoa na célula para trocar, “✕ Tirar da escala” para tirar, ou “+ acrescentar” para pôr mais alguém. Cada mudança salva na hora.
         </p>
       )}
-
-      <div className="legend">
-        {tipos.map(([k, l]) => <span key={k}><i style={{ background: `var(--t-${k})` }} />{l}</span>)}
-      </div>
 
       {cs.length === 0 ? (
         <div className="grid-wrap">

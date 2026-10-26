@@ -54,7 +54,6 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
   const myMonth = items.filter((i) => inMonthOf(i.date, month) && mine.has(Number(i.id))).length;
   const byDay = new Map<string, Item[]>();
   for (const it of items) byDay.set(it.date, [...(byDay.get(it.date) ?? []), it]);
-  const tipos = [...new Map(items.filter((i) => i.date.startsWith(month)).map((i) => serviceType(i.title))).entries()];
   const inMonth = (d: string) => d.startsWith(month);
   const isMine = (d: string) => (byDay.get(d) ?? []).some((s) => mine.has(Number(s.id)));
   const isToday = (d: string) => d === t;
@@ -113,10 +112,6 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
             </p>
           )}
         </div>
-      </div>
-
-      <div className="legend">
-        {tipos.map(([k, l]) => <span key={k}><i style={{ background: `var(--t-${k})` }} />{l}</span>)}
       </div>
 
       <div className="cal">
