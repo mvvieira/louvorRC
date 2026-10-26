@@ -420,16 +420,6 @@ h3 { text-transform: uppercase; letter-spacing: .02em; }
 .seg a { padding: 6px 14px; border-radius: 999px; text-decoration: none; color: var(--ink-2); font-weight: 600; font-size: 14px; }
 .seg a[aria-current="page"] { background: var(--flame); color: var(--on-flame, #fff); }
 .seg.small a { padding: 4px 10px; font-size: 13px; }
-.av-team-bar { display: grid; gap: 8px; margin-bottom: 14px; }
-.av-team-bar p { margin: 0; }
-.av-team { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
-.av-tcard { border: 1px solid var(--line); border-left: 5px solid var(--tc); border-radius: 12px; padding: 10px 14px; background: var(--paper); font-size: 14px; }
-.av-tcard h4 { margin: 0 0 6px; font-size: 15px; }
-.av-tcard h4 a { color: var(--ink); text-decoration: none; }
-.av-tcard p { margin: 4px 0; line-height: 1.45; }
-.av-tcard .me { color: var(--flame); font-weight: 700; }
-.av-tcard a { color: inherit; }
-.av-tcard summary { cursor: pointer; font-size: 13px; }
 .song-ro { padding: 22px; }
 .song-ro h2 { font-size: 28px; }
 .song-ro .links-state { display: flex; gap: 8px; flex-wrap: wrap; }

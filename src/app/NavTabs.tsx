@@ -11,7 +11,7 @@ const TABS = [
   ["/equipe", "Equipe"],
 ];
 
-/** Abas do app; Equipe e Relatórios só para a liderança e Acessos só para o administrador. */
+/** Abas do app; Equipe e Relatórios só para a liderança e Acessos só para quem vê o log de acesso. */
 export default function NavTabs({ lider, admin }: { lider: boolean; admin: boolean }) {
   const path = usePathname();
   return (

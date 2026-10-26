@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { currentUser, isAdmin } from "@/lib/auth";
+import { currentUser, seesAccessLog } from "@/lib/auth";
 import { logout } from "./actions";
 import NavTabs from "./NavTabs";
 import "./globals.css";
@@ -29,7 +29,7 @@ function Logo() {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const me = await currentUser();
-  const admin = await isAdmin(me);
+  const admin = await seesAccessLog(me);
   return (
     <html lang="pt-BR">
       <head>

@@ -117,6 +117,8 @@ async function migrateAccess(client: Client) {
       "INSERT OR IGNORE INTO settings (key, value) VALUES ('team_password', 'rasgando')",
       // dono do app: o único que troca a senha do grupo
       "INSERT OR IGNORE INTO settings (key, value) SELECT 'admin_id', CAST(id AS TEXT) FROM members WHERE name='Marcus' LIMIT 1",
+      // também veem o log de acesso
+      "INSERT OR IGNORE INTO settings (key, value) SELECT 'access_viewers', CAST(id AS TEXT) FROM members WHERE name='Miro' LIMIT 1",
     ],
     "write",
   );

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { isAdmin, pageUser } from "@/lib/auth";
+import { pageUser, seesAccessLog } from "@/lib/auth";
 import { all } from "@/lib/db";
 import { INSTRUMENTO, INSTRUMENTOS, plays } from "@/lib/distribute";
 import { monthData } from "@/lib/distribute-data";
@@ -15,7 +15,7 @@ const quando = (at: string) =>
 /** Acompanhamento do preenchimento da disponibilidade do mês (liderança). */
 export default async function Relatorios({ searchParams }: { searchParams: Promise<{ m?: string; f?: string }> }) {
   const me = await pageUser("lider");
-  const admin = await isAdmin(me);
+  const admin = await seesAccessLog(me);
   const sp = await searchParams;
   const t = today();
   const month = /^\d{4}-\d{2}$/.test(sp.m ?? "") ? sp.m! : shiftMonth(t.slice(0, 7), 1);

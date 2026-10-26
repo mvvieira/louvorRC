@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { isAdmin, pageUser } from "@/lib/auth";
+import { pageUser, seesAccessLog } from "@/lib/auth";
 import { all, run } from "@/lib/db";
 import { ddmm, dayName } from "@/lib/format";
 
@@ -25,7 +25,7 @@ function ha(at: string) {
 /** Log de acesso: quem está usando o app (só o administrador). */
 export default async function Acessos({ searchParams }: { searchParams: Promise<{ eu?: string }> }) {
   const me = await pageUser("lider", false); // a própria página de acessos não entra no log
-  if (!(await isAdmin(me))) redirect("/calendario");
+  if (!(await seesAccessLog(me))) redirect("/calendario");
   const withMe = (await searchParams).eu === "1";
   await run("DELETE FROM access_log WHERE at < datetime('now', '-90 days')");
 
@@ -66,7 +66,7 @@ export default async function Acessos({ searchParams }: { searchParams: Promise<
         <h2>Acessos</h2>
         <Link className="btn small" href={withMe ? "/acessos" : "/acessos?eu=1"}>{withMe ? "Esconder os meus" : "Mostrar os meus"}</Link>
       </div>
-      <p className="muted">Só você vê esta página. Guarda os últimos 90 dias; a mesma página da mesma pessoa conta uma vez a cada 10 minutos.</p>
+      <p className="muted">Só a administração vê esta página. Guarda os últimos 90 dias; a mesma página da mesma pessoa conta uma vez a cada 10 minutos.</p>
 
       <div className="acc-nums">
         <div><b>{people.length - never.length}</b><span>de {people.length} já entraram</span></div>

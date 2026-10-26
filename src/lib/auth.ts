@@ -36,10 +36,10 @@ export async function requireLevel(level: Access): Promise<User> {
   return u!;
 }
 
-/** A própria pessoa, ou a liderança, pode mexer na disponibilidade dela. */
+/** Só a própria pessoa mexe na disponibilidade dela. */
 export async function requireSelf(memberId: number): Promise<User> {
   const u = await currentUser();
-  if (!u || (u.id !== memberId && u.access !== "lider")) throw new Error("Sem permissão para esta ação.");
+  if (!u || u.id !== memberId) throw new Error("Sem permissão para esta ação.");
   return u;
 }
 
@@ -85,6 +85,14 @@ export function checkSecret(secret: string, stored: string): boolean {
   const [salt, hash] = stored.split(":");
   if (!salt || !hash) return false;
   return crypto.timingSafeEqual(Buffer.from(hash, "hex"), crypto.scryptSync(secret, salt, 32));
+}
+
+/** Quem vê o log de acesso (aba Acessos): o administrador e quem estiver em settings.access_viewers ("37,…"). */
+export async function seesAccessLog(u: User | null): Promise<boolean> {
+  if (!u) return false;
+  if (await isAdmin(u)) return true;
+  const ids = (await one<{ value: string }>("SELECT value FROM settings WHERE key='access_viewers'"))?.value ?? "";
+  return ids.split(",").map(Number).includes(u.id);
 }
 
 /** Este aparelho já passou pela senha do grupo (a atual)? */
