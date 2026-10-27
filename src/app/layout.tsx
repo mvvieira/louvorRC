@@ -66,8 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
         <main className="wrap">{children}</main>
         <footer className="site-foot">
-          <span className="irc" aria-hidden="true"><i>I</i><i>R</i><i>C</i></span>
-          Na Rasgando os Céus
+          Rasgando os Céus
         </footer>
       </body>
     </html>
