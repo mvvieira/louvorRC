@@ -1,17 +1,15 @@
-import { isAdmin, pageUser, seesAccessLog, teamPassword } from "@/lib/auth";
+import { pageUser, seesAccessLog } from "@/lib/auth";
 import { all } from "@/lib/db";
 import { ddmm, today } from "@/lib/format";
 import { FUNCOES } from "@/lib/roles";
-import { deleteMember, resetMemberPassword, saveMember, setTeamPassword } from "../actions";
+import { deleteMember, resetMemberPassword, saveMember } from "../actions";
 import MemberCard, { type MemberRow } from "./MemberCard";
 
 export const dynamic = "force-dynamic";
 
 export default async function Equipe() {
   const me = await pageUser("lider");
-  const admin = await isAdmin(me);
   const canReset = await seesAccessLog(me);
-  const pass = await teamPassword();
   const members = (await all<MemberRow>("SELECT id, name, roles, phone, must_change FROM members ORDER BY name"))
     .map((m) => ({ id: Number(m.id), name: m.name, roles: m.roles, phone: m.phone, must_change: Number(m.must_change) }));
   const upcoming = await all<{ member_id: number; date: string; role: string }>(
@@ -32,23 +30,6 @@ export default async function Equipe() {
         <button className="btn primary">Adicionar integrante</button>
         <span className="count">{members.length} integrante{members.length === 1 ? "" : "s"}</span>
       </form>
-      <div className="access-box">
-        {admin ? (
-          <>
-            <form action={setTeamPassword} className="tools">
-              <label className="f">Senha do grupo
-                <input type="text" name="pass" defaultValue={pass} minLength={4} required autoComplete="off" />
-              </label>
-              <button className="btn">Salvar senha</button>
-            </form>
-          </>
-        ) : (
-          <p className="pass-ro">Senha do grupo: <b>{pass}</b> <span className="muted">(só o administrador troca)</span></p>
-        )}
-        <p className="muted">
-          Mande essa senha no grupo do WhatsApp. Cada pessoa entra com ela e toca no próprio nome.
-        </p>
-      </div>
       <div className="team">
         {members.map((m) => (
           <MemberCard key={m.id} member={m} funcoes={FUNCOES} meta={meta(Number(m.id))} save={saveMember} remove={deleteMember}

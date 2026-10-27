@@ -20,6 +20,5 @@
 :root[data-tema="noite"] nav.tabs a[aria-current="page"] { background: var(--flame-soft); color: var(--flame); }
 :root[data-tema="noite"] .today-card,
 :root[data-tema="noite"] .who-sum,
-:root[data-tema="noite"] .access-box,
 :root[data-tema="noite"] .edit-hint { border-left-width: 3px; }
 :root[data-tema="noite"] .rel-cov td.cov-bad { background: #3A1E22; }

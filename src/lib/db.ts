@@ -83,7 +83,7 @@ async function migrate(client: Client) {
 }
 
 /**
- * Níveis de acesso (liderança, ministro, banda), senha do grupo
+ * Níveis de acesso (liderança, ministro, banda), configurações
  * e o segredo de sessão de cada pessoa (`token`, guardado no cookie depois de entrar).
  * Na primeira vez: ministro = quem já foi escalado como Ministro; liderança definida pela equipe.
  */
@@ -123,7 +123,7 @@ async function migrateAccess(client: Client) {
       "CREATE INDEX IF NOT EXISTS access_log_member_at ON access_log (member_id, at)",
       // senha inicial do grupo; a liderança troca na aba Equipe
       "INSERT OR IGNORE INTO settings (key, value) VALUES ('team_password', 'rasgando')",
-      // dono do app: o único que troca a senha do grupo
+      // dono do app (administrador)
       "INSERT OR IGNORE INTO settings (key, value) SELECT 'admin_id', CAST(id AS TEXT) FROM members WHERE name='Marcus' LIMIT 1",
       // também veem o log de acesso
       "INSERT OR IGNORE INTO settings (key, value) SELECT 'access_viewers', CAST(id AS TEXT) FROM members WHERE name='Miro' LIMIT 1",

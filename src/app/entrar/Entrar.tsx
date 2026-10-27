@@ -1,15 +1,14 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { enterPassword, enterTeam, pickMember, setFirstPassword } from "./actions";
+import { enterPassword, pickMember, setFirstPassword } from "./actions";
 
 type P = { id: number; name: string; roles: string };
 
-export default function Entrar({ team, people }: { team: boolean; people: P[] }) {
+export default function Entrar({ people }: { people: P[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState("");
-  const [pass, setPass] = useState("");
   const [q, setQ] = useState("");
   const [locked, setLocked] = useState<{ id: number; name: string } | null>(null);
   const [secret, setSecret] = useState("");
@@ -18,23 +17,6 @@ export default function Entrar({ team, people }: { team: boolean; people: P[] })
   const [again, setAgain] = useState("");
 
   const go = () => { router.replace("/calendario"); router.refresh(); };
-
-  if (!team) {
-    return (
-      <form className="sheet login" onSubmit={(e) => {
-        e.preventDefault();
-        start(async () => {
-          if (await enterTeam(pass)) { setErr(""); router.refresh(); } else setErr("Senha errada. Confira a senha que a liderança mandou no grupo.");
-        });
-      }}>
-        <h2>Louvor Rasgando os Céus</h2>
-        <p className="muted">Digite a senha da equipe (a liderança manda no grupo do WhatsApp). O celular lembra depois.</p>
-        <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Senha da equipe" aria-label="Senha da equipe" autoFocus required />
-        {err && <p className="no-t">{err}</p>}
-        <button className="btn primary" disabled={pending || !pass}>{pending ? "Conferindo…" : "Entrar"}</button>
-      </form>
-    );
-  }
 
   if (locked) {
     if (creating) {
@@ -92,7 +74,7 @@ export default function Entrar({ team, people }: { team: boolean; people: P[] })
               const r = await pickMember(p.id);
               if (r === "in") go();
               else if (r === "password") { setErr(""); setLocked({ id: p.id, name: p.name }); }
-              else { setErr("Digite a senha do grupo de novo."); router.refresh(); }
+              else { setErr("Não encontrei este nome. Atualize a página."); router.refresh(); }
             })}>
               <b>{p.name}</b>
               <span className="muted">{p.roles || "—"}</span>

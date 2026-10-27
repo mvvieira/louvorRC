@@ -7,12 +7,11 @@ import { cache } from "react";
 import { one, type Access } from "./db";
 
 /*
- * Entrada: senha do grupo (cookie rc_equipe) → a pessoa toca no próprio nome.
+ * Entrada: a pessoa toca no próprio nome e digita a própria senha.
  * Depois disso o cookie rc_acesso guarda o segredo de sessão da pessoa; o nível vem da pessoa na Equipe.
  */
 
 export const COOKIE = "rc_acesso";
-export const TEAM_COOKIE = "rc_equipe";
 export const YEAR = 60 * 60 * 24 * 365;
 export type User = { id: number; name: string; access: Access; roles: string };
 
@@ -55,25 +54,6 @@ export async function pageUser(level: Access = "banda", log = true): Promise<Use
   return u;
 }
 
-/* ---------- Senha do grupo ---------- */
-
-export async function teamPassword(): Promise<string> {
-  return (await one<{ value: string }>("SELECT value FROM settings WHERE key='team_password'"))?.value ?? "";
-}
-
-/** Sem diferença de maiúsculas e espaços, para ninguém errar no celular. */
-export const normPass = (p: string) => p.trim().toLowerCase();
-
-/** O que fica no cookie depois de acertar a senha (troca de senha derruba os cookies antigos). */
-export const teamKey = (pass: string) => crypto.createHash("sha256").update(`rc-louvor:${normPass(pass)}`).digest("hex");
-
-/** O dono do app (settings.admin_id) — o único que troca a senha do grupo. */
-export async function isAdmin(u: User | null): Promise<boolean> {
-  if (!u) return false;
-  const id = (await one<{ value: string }>("SELECT value FROM settings WHERE key='admin_id'"))?.value;
-  return !!id && Number(id) === u.id;
-}
-
 /* ---------- Senha individual (members.pin_hash); a inicial obriga a criar outra no 1º acesso ---------- */
 
 export const INITIAL_PASSWORD = "123mudar";
@@ -96,6 +76,13 @@ export function checkSecret(secret: string, stored: string): boolean {
   return crypto.timingSafeEqual(Buffer.from(hash, "hex"), crypto.scryptSync(secret, salt, 32));
 }
 
+/** O dono do app (settings.admin_id). */
+export async function isAdmin(u: User | null): Promise<boolean> {
+  if (!u) return false;
+  const id = (await one<{ value: string }>("SELECT value FROM settings WHERE key='admin_id'"))?.value;
+  return !!id && Number(id) === u.id;
+}
+
 /** Quem vê o log de acesso (aba Acessos): o administrador e quem estiver em settings.access_viewers ("37,…"). */
 export async function seesAccessLog(u: User | null): Promise<boolean> {
   if (!u) return false;
@@ -104,8 +91,3 @@ export async function seesAccessLog(u: User | null): Promise<boolean> {
   return ids.split(",").map(Number).includes(u.id);
 }
 
-/** Este aparelho já passou pela senha do grupo (a atual)? */
-export async function teamOk(): Promise<boolean> {
-  const c = (await cookies()).get(TEAM_COOKIE)?.value;
-  return !!c && c === teamKey(await teamPassword());
-}

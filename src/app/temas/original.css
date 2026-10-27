@@ -29,6 +29,5 @@
 :root[data-tema="original"] nav.tabs a[aria-current="page"] { background: var(--brand); color: #fff; }
 :root[data-tema="original"] .today-card,
 :root[data-tema="original"] .who-sum,
-:root[data-tema="original"] .access-box,
 :root[data-tema="original"] .edit-hint { border-left-width: 5px; }
 :root[data-tema="original"] .rel-cov td.cov-bad { background: color-mix(in srgb, #E5484D 22%, var(--paper)); }

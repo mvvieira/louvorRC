@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { badPassword, checkSecret, COOKIE, currentUser, hashSecret, INITIAL_PASSWORD, isAdmin, requireLevel, requireSelf, seesAccessLog } from "@/lib/auth";
+import { badPassword, checkSecret, COOKIE, currentUser, hashSecret, INITIAL_PASSWORD, requireLevel, requireSelf, seesAccessLog } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { all, db, newToken, one, run, type Access, type Song } from "@/lib/db";
 import { cifraHits } from "@/lib/match";
@@ -337,7 +337,7 @@ export async function applyDistribution(month: string, picks: { service_id: numb
 
 /* ---------- Acesso ---------- */
 
-/** Sai deste celular (a senha do grupo continua lembrada: é só tocar no nome de novo). */
+/** Sai deste celular (volta para o "Quem é você?"). */
 export async function logout() {
   (await cookies()).delete(COOKIE);
   redirect("/entrar");
@@ -351,14 +351,6 @@ export async function setMemberAccess(memberId: number, access: Access) {
   revalidatePath("/", "layout");
 }
 
-/** Troca a senha do grupo; quem ainda não entrou precisa da nova (quem já entrou continua). */
-export async function setTeamPassword(f: FormData) {
-  if (!(await isAdmin(await requireLevel("lider")))) throw new Error("Só o administrador troca a senha do grupo.");
-  const pass = str(f, "pass");
-  if (pass.length < 4) return;
-  await run("INSERT INTO settings (key, value) VALUES ('team_password', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [pass]);
-  revalidatePath("/", "layout");
-}
 
 /** Qualquer pessoa troca a própria senha (confirmando a atual). */
 export async function changeMyPassword(current: string, next: string): Promise<{ ok: true } | { error: string }> {
