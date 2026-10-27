@@ -332,7 +332,7 @@ export async function applyDistribution(month: string, picks: { service_id: numb
   );
   revalidatePath("/", "layout");
   if (stay) return; // na página do culto a escala atualiza no lugar
-  redirect(`/escala?m=${month}&done=${res.reduce((n, r) => n + r.rowsAffected, 0)}`);
+  redirect(`/escala/montar?m=${month}&done=${res.reduce((n, r) => n + r.rowsAffected, 0)}`);
 }
 
 /* ---------- Acesso ---------- */

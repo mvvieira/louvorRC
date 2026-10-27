@@ -133,7 +133,7 @@ export default function Distributor({ month, services: all, targets, people, exi
           onClick={() => start(() => applyDistribution(month, picks.map(({ service_id, member_id, role }) => ({ service_id, member_id, role }))))}>
           {pending ? "Lançando…" : `Lançar ${picks.length} pessoa${picks.length === 1 ? "" : "s"} na escala`}
         </button>
-        <span className="muted">Depois dá para trocar qualquer nome em Escala → Editar escala.</span>
+        <span className="muted">Depois dá para trocar qualquer nome em Montar escala.</span>
       </div>
     </div>
   );

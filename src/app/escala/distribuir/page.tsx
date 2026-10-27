@@ -25,7 +25,7 @@ export default async function Distribuir({ searchParams }: { searchParams: Promi
           <h2>Distribuir {mesNome} {y}</h2>
           <Link className="btn icon" href={`/escala/distribuir?m=${shift(month, 1)}`} aria-label="Próximo mês">›</Link>
         </div>
-        <Link className="btn" href={`/escala?m=${month}`}>← Voltar para a escala</Link>
+        <Link className="btn" href={`/escala/montar?m=${month}`}>← Voltar para Montar escala</Link>
       </div>
       {cs.length === 0 ? (
         <p className="empty-month">Nenhum culto por vir em {mesNome}. Crie os cultos na aba <Link href="/cultos">Cultos</Link>.</p>
