@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { pageUser } from "@/lib/auth";
 import { all, type Service } from "@/lib/db";
+import { escalaSql, seeAll } from "@/lib/escala-status";
 import { MESES, shiftMonth, today } from "@/lib/format";
 import { serviceType } from "@/lib/roles";
 
@@ -35,21 +36,21 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
     `SELECT s.*,
        (SELECT COUNT(*) FROM service_songs ss WHERE ss.service_id=s.id) AS n,
        (SELECT GROUP_CONCAT(mb.name, ', ') FROM service_members sm JOIN members mb ON mb.id=sm.member_id
-         WHERE sm.service_id=s.id AND sm.role='Ministro') AS ministros
+         WHERE sm.service_id=s.id AND sm.role='Ministro' AND ${escalaSql("s.date")}) AS ministros
      FROM services s WHERE date BETWEEN ? AND ? ORDER BY date, id`,
-    [days[0], days[days.length - 1]],
+    [seeAll(me), days[0], days[days.length - 1]],
   );
   // funções de quem está usando o app em cada culto (para destacar os dias dele)
   const mine = new Map<number, string>();
   for (const r of await all<{ service_id: number; roles: string }>(
     `SELECT sm.service_id, GROUP_CONCAT(sm.role, ', ') AS roles FROM service_members sm JOIN services s ON s.id=sm.service_id
-     WHERE sm.member_id=? AND s.date BETWEEN ? AND ? GROUP BY sm.service_id`,
-    [me.id, days[0], days[days.length - 1]],
+     WHERE sm.member_id=? AND s.date BETWEEN ? AND ? AND ${escalaSql("s.date")} GROUP BY sm.service_id`,
+    [me.id, days[0], days[days.length - 1], seeAll(me)],
   )) mine.set(Number(r.service_id), r.roles || "Equipe");
   const myNext = await all<Item & { roles: string }>(
     `SELECT s.*, GROUP_CONCAT(sm.role, ', ') AS roles FROM service_members sm JOIN services s ON s.id=sm.service_id
-     WHERE sm.member_id=? AND s.date >= ? GROUP BY s.id ORDER BY s.date, s.id LIMIT 1`,
-    [me.id, t],
+     WHERE sm.member_id=? AND s.date >= ? AND ${escalaSql("s.date")} GROUP BY s.id ORDER BY s.date, s.id LIMIT 1`,
+    [me.id, t, seeAll(me)],
   );
   const myMonth = items.filter((i) => inMonthOf(i.date, month) && mine.has(Number(i.id))).length;
   const byDay = new Map<string, Item[]>();

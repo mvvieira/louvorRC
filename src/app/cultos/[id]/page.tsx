@@ -4,6 +4,7 @@ import { can, pageUser } from "@/lib/auth";
 import { all, one, type Member, type Service, type Song } from "@/lib/db";
 import { dayName, ddmm, today } from "@/lib/format";
 import { monthData } from "@/lib/distribute-data";
+import { monthStatus } from "@/lib/escala-status";
 import { FUNCOES, splitRoles } from "@/lib/roles";
 import { driveItems } from "@/lib/drive";
 import { linkHits } from "@/lib/finder";
@@ -34,11 +35,13 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
      WHERE ss.service_id=? ORDER BY ss.position, ss.id`,
     [id],
   );
-  const team = await all<{ sm_id: number; member_id: number; name: string; role: string }>(
+  // escala de mês ainda não aprovado: só a liderança vê
+  const official = (await monthStatus(service.date.slice(0, 7))).official;
+  const team = lider || official ? await all<{ sm_id: number; member_id: number; name: string; role: string }>(
     `SELECT sm.id AS sm_id, sm.member_id, m.name, sm.role FROM service_members sm JOIN members m ON m.id=sm.member_id
      WHERE sm.service_id=? ORDER BY sm.id`,
     [id],
-  );
+  ) : [];
   const songs = await all<Song>("SELECT id, title, song_key, version, artist, vozes_url, cifra_url FROM songs ORDER BY title");
   const twins = await repertoireSiblings(id);
   const drive = await driveItems();
@@ -109,6 +112,9 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
 
       <div className="sec">
         <h3>Escala</h3>
+        {lider && !official && team.length > 0 && (
+          <p className="edit-hint">Rascunho: a equipe ainda não vê esta escala. Ela aparece para todos quando a escala do mês for aprovada em Montar escala.</p>
+        )}
         {auto && <AutoEscala key={team.map((t) => t.sm_id).join()} serviceId={id} month={month} {...auto} />}
         {awayTeam.length > 0 && (
           <p className="notes" style={{ marginBottom: 10 }}>
@@ -125,7 +131,7 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
                 </div>
               ))}
             </dl>
-          ) : <p className="muted">Escala ainda não lançada.</p>
+          ) : <p className="muted">{official ? "Escala ainda não lançada." : "Escala em preparação: aparece aqui quando for aprovada."}</p>
         ) : (
         <div className="escala">
           {team.map((t) => (

@@ -1,9 +1,11 @@
 import Link from "next/link";
-import type { User } from "@/lib/auth";
+import { can, type User } from "@/lib/auth";
+import { approverName, isApprover, monthStatus } from "@/lib/escala-status";
 import { all, type Member, type Service } from "@/lib/db";
 import { dayName, ddmm, MESES, shiftMonth as shift, today } from "@/lib/format";
 import { FUNCOES, serviceType, splitRoles } from "@/lib/roles";
-import { addServiceMember, setServiceMember } from "../actions";
+import { addServiceMember, approveEscala, reopenEscala, setServiceMember } from "../actions";
+import ConfirmButton from "../ConfirmButton";
 import CopyButton from "../CopyButton";
 import SlotSelect, { type SlotPerson } from "../SlotSelect";
 
@@ -18,6 +20,28 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
   const base = edit ? "/escala/montar" : "/escala";
   const [y, m] = month.split("-");
   const mesNome = MESES[Number(m) - 1];
+
+  const status = await monthStatus(month);
+  const lider = can(me, "lider");
+  const approver = await isApprover(me);
+  const who = await approverName();
+  const quando = status.at ? new Date(status.at.replace(" ", "T") + "Z").toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+  const nav = (
+    <div className="month">
+      <Link className="btn icon" href={`${base}?m=${shift(month, -1)}`} aria-label="Mês anterior">‹</Link>
+      <h2>{edit ? "Montar · " : ""}{mesNome} {y}</h2>
+      <Link className="btn icon" href={`${base}?m=${shift(month, 1)}`} aria-label="Próximo mês">›</Link>
+    </div>
+  );
+  // equipe só vê a escala de mês aprovado
+  if (!edit && !lider && !status.official) {
+    return (
+      <>
+        <div className="esc-top esc-full">{nav}</div>
+        <p className="edit-hint">A escala de {mesNome} está sendo montada. Ela aparece aqui quando for aprovada pela liderança.</p>
+      </>
+    );
+  }
 
   const cs = await all<Service>("SELECT * FROM services WHERE date LIKE ? ORDER BY date, id", [`${month}-%`]);
   const slots = await all<Slot>(
@@ -54,14 +78,34 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
   return (
     <>
       <div className="esc-top esc-full">
-        <div className="month">
-          <Link className="btn icon" href={`${base}?m=${shift(month, -1)}`} aria-label="Mês anterior">‹</Link>
-          <h2>{edit ? "Montar · " : ""}{mesNome} {y}</h2>
-          <Link className="btn icon" href={`${base}?m=${shift(month, 1)}`} aria-label="Próximo mês">›</Link>
-        </div>
+        {nav}
         {edit && <Link className="btn primary" href={`/escala/distribuir?m=${month}`}>Distribuir automaticamente</Link>}
         {edit && <CopyButton text={L.join("\n")} label="Copiar escala do mês" done="Escala copiada" className="btn" />}
       </div>
+
+      {edit && cs.length > 0 && (
+        <div className={`approve-bar${status.official ? " ok" : ""}`}>
+          {status.official ? (
+            <span>✓ <b>Escala oficial</b>{status.by ? ` · aprovada por ${status.by}` : ""}{quando ? ` em ${quando}` : ""}. Toda a equipe já vê. Trocas feitas aqui aparecem na hora.</span>
+          ) : (
+            <span><b>Rascunho</b> · só a liderança vê a escala de {mesNome}. {approver ? "Quando estiver pronta, aprove para todos verem." : `Aguardando a aprovação de ${who}.`}</span>
+          )}
+          {approver && (
+            <form action={status.official ? reopenEscala : approveEscala}>
+              <input type="hidden" name="month" value={month} />
+              {status.official ? (
+                <ConfirmButton className="btn small" message={`Reabrir a escala de ${mesNome}? Ela some para a equipe até você aprovar de novo.`}>Reabrir para ajustes</ConfirmButton>
+              ) : (
+                <ConfirmButton className="btn primary" message={`Aprovar a escala de ${mesNome}? Ela passa a aparecer para toda a equipe.`}>Aprovar escala de {mesNome}</ConfirmButton>
+              )}
+            </form>
+          )}
+        </div>
+      )}
+
+      {!edit && !status.official && (
+        <p className="edit-hint">Rascunho: só a liderança está vendo a escala de {mesNome}. Ela aparece para a equipe quando {who} aprovar em Montar escala.</p>
+      )}
 
       {done !== undefined && (
         <p className="edit-hint">✓ {done} pessoa{done === "1" ? "" : "s"} lançada{done === "1" ? "" : "s"} na escala pela distribuição automática. Para trocar alguém, escolha outra pessoa na célula.</p>

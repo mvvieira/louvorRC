@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { pageUser } from "@/lib/auth";
 import { all } from "@/lib/db";
+import { escalaSql, seeAll } from "@/lib/escala-status";
 import { MESES, monthGrid, shiftMonth, today } from "@/lib/format";
 import { serviceType } from "@/lib/roles";
 import AvailCalendar, { type AvailItem } from "./AvailCalendar";
@@ -18,9 +19,9 @@ export default async function Disponibilidade({ searchParams }: { searchParams: 
   const services = await all<{ id: number; date: string; title: string; available: number | null; roles: string | null }>(
     `SELECT s.id, s.date, s.title,
        (SELECT available FROM availability a WHERE a.member_id=? AND a.service_id=s.id) AS available,
-       (SELECT GROUP_CONCAT(sm.role, ', ') FROM service_members sm WHERE sm.member_id=? AND sm.service_id=s.id) AS roles
+       (SELECT GROUP_CONCAT(sm.role, ', ') FROM service_members sm WHERE sm.member_id=? AND sm.service_id=s.id AND ${escalaSql("s.date")}) AS roles
      FROM services s WHERE s.date LIKE ? ORDER BY s.date, s.id`,
-    [me.id, me.id, `${month}-%`],
+    [me.id, me.id, seeAll(me), `${month}-%`],
   );
   const items: AvailItem[] = services.map((s) => ({
     id: Number(s.id),

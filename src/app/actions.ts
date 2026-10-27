@@ -9,6 +9,7 @@ import { cifraHits } from "@/lib/match";
 import { driveItems } from "@/lib/drive";
 import { linkHits, parseQueryLine, rankBy } from "@/lib/finder";
 import { pullRepertoire, syncRepertoire } from "@/lib/repertoire";
+import { approveMonth, isApprover, reopenMonth } from "@/lib/escala-status";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const num = (f: FormData, k: string) => Number(f.get(k));
@@ -371,5 +372,27 @@ export async function resetMemberPassword(memberId: number) {
   await run("UPDATE members SET pin_hash=?, must_change=1, pin_fails=0, pin_until='', token=? WHERE id=?", [
     hashSecret(INITIAL_PASSWORD), newToken(), memberId,
   ]);
+  revalidatePath("/", "layout");
+}
+
+/* ---------- Aprovação da escala do mês ---------- */
+
+/** O aprovador (Gui Cavalcante) torna a escala do mês oficial: passa a aparecer para toda a equipe. */
+export async function approveEscala(f: FormData) {
+  const me = await requireLevel("lider");
+  if (!(await isApprover(me))) throw new Error("Só o aprovador pode aprovar a escala.");
+  const month = str(f, "month");
+  if (!/^\d{4}-\d{2}$/.test(month)) return;
+  await approveMonth(month, me.id);
+  revalidatePath("/", "layout");
+}
+
+/** Volta o mês para rascunho (some para a equipe até aprovar de novo). */
+export async function reopenEscala(f: FormData) {
+  const me = await requireLevel("lider");
+  if (!(await isApprover(me))) throw new Error("Só o aprovador pode reabrir a escala.");
+  const month = str(f, "month");
+  if (!/^\d{4}-\d{2}$/.test(month)) return;
+  await reopenMonth(month);
   revalidatePath("/", "layout");
 }

@@ -125,6 +125,12 @@ async function migrateAccess(client: Client) {
       "INSERT OR IGNORE INTO settings (key, value) VALUES ('team_password', 'rasgando')",
       // dono do app (administrador)
       "INSERT OR IGNORE INTO settings (key, value) SELECT 'admin_id', CAST(id AS TEXT) FROM members WHERE name='Marcus' LIMIT 1",
+      // aprovação da escala por mês (mês aprovado = oficial para toda a equipe)
+      "CREATE TABLE IF NOT EXISTS escala_status (month TEXT PRIMARY KEY, approved_by INTEGER, approved_at TEXT NOT NULL DEFAULT (datetime('now')))",
+      // meses que a equipe já usava antes da aprovação existir contam como oficiais
+      "INSERT OR IGNORE INTO escala_status (month, approved_by) SELECT DISTINCT substr(date, 1, 7), NULL FROM services WHERE date < '2026-11-01'",
+      // quem aprova a escala do mês
+      "INSERT OR IGNORE INTO settings (key, value) SELECT 'approver_id', CAST(id AS TEXT) FROM members WHERE name='Gui Cavalcante' LIMIT 1",
       // também veem o log de acesso
       "INSERT OR IGNORE INTO settings (key, value) SELECT 'access_viewers', CAST(id AS TEXT) FROM members WHERE name='Miro' LIMIT 1",
     ],
