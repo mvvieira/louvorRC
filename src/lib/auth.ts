@@ -74,7 +74,16 @@ export async function isAdmin(u: User | null): Promise<boolean> {
   return !!id && Number(id) === u.id;
 }
 
-/* ---------- Senha pessoal (hoje só o administrador tem; fica em members.pin_hash) ---------- */
+/* ---------- Senha individual (members.pin_hash); a inicial obriga a criar outra no 1º acesso ---------- */
+
+export const INITIAL_PASSWORD = "123mudar";
+
+/** Regras de uma senha nova. */
+export function badPassword(p: string): string | null {
+  if (p.length < 4) return "A senha precisa ter pelo menos 4 caracteres.";
+  if (p === INITIAL_PASSWORD) return "Escolha uma senha diferente da inicial.";
+  return null;
+}
 
 export function hashSecret(secret: string): string {
   const salt = crypto.randomBytes(16).toString("hex");

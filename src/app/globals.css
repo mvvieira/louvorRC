@@ -505,3 +505,4 @@ main.wrap:has(.esc-full) { max-width: none; padding: 0 16px; }
 
 /* Visual Sereno: bordas de destaque mais finas */
 .today-card, .who-sum, .access-box, .edit-hint { border-left-width: 3px; }
+.member .pass-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; margin-top: -4px; }

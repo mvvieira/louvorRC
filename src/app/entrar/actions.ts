@@ -3,10 +3,10 @@
 import { cookies, headers } from "next/headers";
 import { after } from "next/server";
 import { logEntry } from "@/lib/access";
-import { checkSecret, COOKIE, normPass, TEAM_COOKIE, teamKey, teamOk, teamPassword, YEAR } from "@/lib/auth";
+import { badPassword, checkSecret, COOKIE, hashSecret, normPass, TEAM_COOKIE, teamKey, teamOk, teamPassword, YEAR } from "@/lib/auth";
 import { one, run } from "@/lib/db";
 
-type Who = { id: number; name: string; token: string; pin_hash: string; pin_fails: number; pin_until: string };
+type Who = { id: number; name: string; token: string; pin_hash: string; pin_fails: number; pin_until: string; must_change: number };
 const LOCK_AFTER = 5, LOCK_MIN = 15;
 
 async function setCookie(name: string, value: string) {
@@ -21,7 +21,7 @@ async function logged(id: number) {
 
 async function who(id: number): Promise<Who | undefined> {
   if (!(await teamOk())) return undefined;
-  return one<Who>("SELECT id, name, token, pin_hash, pin_fails, pin_until FROM members WHERE id=? AND active=1", [id]);
+  return one<Who>("SELECT id, name, token, pin_hash, pin_fails, pin_until, must_change FROM members WHERE id=? AND active=1", [id]);
 }
 
 /** Passo 1: senha do grupo. */
@@ -32,7 +32,7 @@ export async function enterTeam(pass: string): Promise<boolean> {
   return true;
 }
 
-/** Passo 2: tocou no próprio nome. Entra direto, a não ser que a pessoa tenha senha pessoal (o administrador). */
+/** Passo 2: tocou no próprio nome. Quem tem senha (todos, desde a senha individual) vai para o passo 3. */
 export async function pickMember(id: number): Promise<"in" | "password" | "again"> {
   const m = await who(id);
   if (!m) return "again";
@@ -42,8 +42,8 @@ export async function pickMember(id: number): Promise<"in" | "password" | "again
   return "in";
 }
 
-/** Passo 3 (só quem tem senha pessoal): confere, com bloqueio de 15 min depois de 5 erros. */
-export async function enterPassword(id: number, pass: string): Promise<{ ok: true } | { error: string }> {
+/** Passo 3: confere a senha (bloqueio de 15 min depois de 5 erros). Com a senha inicial, pede para criar outra antes de entrar. */
+export async function enterPassword(id: number, pass: string): Promise<{ ok: true } | { change: true } | { error: string }> {
   const m = await who(id);
   if (!m?.pin_hash) return { error: "Toque no seu nome de novo." };
   if (m.pin_until && m.pin_until > new Date().toISOString()) return { error: `Muitas tentativas. Espere ${LOCK_MIN} minutos.` };
@@ -56,6 +56,19 @@ export async function enterPassword(id: number, pass: string): Promise<{ ok: tru
     return { error: lock ? `Senha errada ${LOCK_AFTER} vezes: espere ${LOCK_MIN} minutos.` : `Senha errada. Restam ${LOCK_AFTER - fails} tentativa${LOCK_AFTER - fails === 1 ? "" : "s"}.` };
   }
   await run("UPDATE members SET pin_fails=0, pin_until='' WHERE id=?", [m.id]);
+  if (Number(m.must_change)) return { change: true };
+  await setCookie(COOKIE, m.token);
+  await logged(m.id);
+  return { ok: true };
+}
+
+/** Passo 4 (1º acesso): cria a própria senha no lugar da inicial e entra. */
+export async function setFirstPassword(id: number, current: string, next: string): Promise<{ ok: true } | { error: string }> {
+  const m = await who(id);
+  if (!m?.pin_hash || !Number(m.must_change) || !checkSecret(current, m.pin_hash)) return { error: "Toque no seu nome de novo." };
+  const bad = badPassword(next);
+  if (bad) return { error: bad };
+  await run("UPDATE members SET pin_hash=?, must_change=0, pin_fails=0, pin_until='' WHERE id=?", [hashSecret(next), m.id]);
   await setCookie(COOKIE, m.token);
   await logged(m.id);
   return { ok: true };

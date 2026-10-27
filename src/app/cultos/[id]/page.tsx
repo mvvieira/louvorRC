@@ -53,7 +53,7 @@ export default async function Culto({ params }: { params: Promise<{ id: string }
     const fits = (x?: { song_key: string }) => !!x && (!s.song_key || !x.song_key || x.song_key.toLowerCase() === s.song_key.toLowerCase());
     links[s.id] = { vozes: h.vozes.map(opt), cifras: h.cifras.map(opt), auto: (!s.vozes_url && fits(h.vozes[0]) ? 1 : 0) + (!s.cifra_url && fits(h.cifras[0]) ? 1 : 0) };
   }
-  const members = await all<Member>("SELECT * FROM members WHERE active=1 ORDER BY name");
+  const members = await all<Member>("SELECT id, name, roles FROM members WHERE active=1 ORDER BY name");
 
   const L = [`🎶 *${(service.title || "Repertório").toUpperCase()} – ${dayName(service.date).toUpperCase()} ${ddmm(service.date)}*`];
   for (const s of items) {

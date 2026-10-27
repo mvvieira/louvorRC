@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { enterPassword, enterTeam, pickMember } from "./actions";
+import { enterPassword, enterTeam, pickMember, setFirstPassword } from "./actions";
 
 type P = { id: number; name: string; roles: string };
 
@@ -13,6 +13,9 @@ export default function Entrar({ team, people }: { team: boolean; people: P[] })
   const [q, setQ] = useState("");
   const [locked, setLocked] = useState<{ id: number; name: string } | null>(null);
   const [secret, setSecret] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [next, setNext] = useState("");
+  const [again, setAgain] = useState("");
 
   const go = () => { router.replace("/calendario"); router.refresh(); };
 
@@ -34,20 +37,42 @@ export default function Entrar({ team, people }: { team: boolean; people: P[] })
   }
 
   if (locked) {
+    if (creating) {
+      return (
+        <form className="sheet login" onSubmit={(e) => {
+          e.preventDefault();
+          if (next !== again) { setErr("As duas senhas não estão iguais."); return; }
+          start(async () => {
+            const r = await setFirstPassword(locked.id, secret, next);
+            if ("ok" in r) go(); else setErr(r.error);
+          });
+        }}>
+          <h2>{locked.name}</h2>
+          <p className="muted">Primeiro acesso: crie a sua senha. Ela é só sua; use-a nas próximas vezes.</p>
+          <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="Nova senha (mín. 4 caracteres)" aria-label="Nova senha" autoComplete="new-password" autoFocus required />
+          <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} placeholder="Repita a nova senha" aria-label="Repita a nova senha" autoComplete="new-password" required />
+          {err && <p className="no-t">{err}</p>}
+          <button className="btn primary" disabled={pending || !next || !again}>{pending ? "Salvando…" : "Criar senha e entrar"}</button>
+        </form>
+      );
+    }
     return (
       <form className="sheet login" onSubmit={(e) => {
         e.preventDefault();
         start(async () => {
           const r = await enterPassword(locked.id, secret);
-          if ("ok" in r) go(); else { setErr(r.error); setSecret(""); }
+          if ("ok" in r) go();
+          else if ("change" in r) { setErr(""); setCreating(true); }
+          else { setErr(r.error); setSecret(""); }
         });
       }}>
         <h2>{locked.name}</h2>
-        <p className="muted">Este perfil tem senha. Digite a sua senha para entrar.</p>
-        <input type="password" value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="Sua senha" aria-label="Sua senha" autoFocus required />
+        <p className="muted">Digite a sua senha. No primeiro acesso, use a senha inicial que a liderança passou.</p>
+        <input type="password" value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="Sua senha" aria-label="Sua senha" autoComplete="current-password" autoFocus required />
         {err && <p className="no-t">{err}</p>}
         <button className="btn primary" disabled={pending || !secret}>{pending ? "Conferindo…" : "Entrar"}</button>
         <button type="button" className="btn ghost small" onClick={() => { setLocked(null); setSecret(""); setErr(""); }}>Não sou {locked.name}</button>
+        <p className="muted" style={{ fontSize: 13 }}>Esqueceu a senha? Peça para a liderança zerar.</p>
       </form>
     );
   }

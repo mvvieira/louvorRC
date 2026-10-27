@@ -1,15 +1,20 @@
 "use client";
 import { useState, useTransition } from "react";
 import type { Member } from "@/lib/db";
+
+/** Só o que o cartão precisa (nunca mandar token ou hash de senha ao navegador). */
+export type MemberRow = Pick<Member, "id" | "name" | "roles" | "phone"> & { must_change: number };
 import { splitRoles } from "@/lib/roles";
 
 
-export default function MemberCard({ member, funcoes, meta, save, remove }: {
-  member: Member;
+export default function MemberCard({ member, funcoes, meta, save, remove, resetPassword }: {
+  member: MemberRow;
   funcoes: string[];
   meta: string;
   save: (f: FormData) => Promise<void>;
   remove: (f: FormData) => Promise<void>;
+  /** zerar a senha (volta para a inicial); só para quem pode */
+  resetPassword?: (id: number) => Promise<void>;
 }) {
   const [name, setName] = useState(member.name);
   const [roles, setRoles] = useState(splitRoles(member.roles));
@@ -50,6 +55,15 @@ export default function MemberCard({ member, funcoes, meta, save, remove }: {
         ))}
       </div>
       <div className="meta">{meta}</div>
+      {resetPassword && (
+        <div className="pass-row">
+          <span className="muted">{member.must_change ? "Senha inicial (ainda não trocou)" : "Senha própria criada"}</span>
+          <button type="button" className="btn ghost small"
+            onClick={() => { if (confirm(`Zerar a senha de ${member.name}? Volta para a senha inicial e a pessoa cria outra no próximo acesso.`)) start(() => resetPassword(member.id)); }}>
+            Zerar senha
+          </button>
+        </div>
+      )}
     </div>
   );
 }

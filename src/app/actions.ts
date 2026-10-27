@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { COOKIE, hashSecret, isAdmin, requireLevel, requireSelf } from "@/lib/auth";
+import { badPassword, checkSecret, COOKIE, currentUser, hashSecret, INITIAL_PASSWORD, isAdmin, requireLevel, requireSelf, seesAccessLog } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { all, db, newToken, one, run, type Access, type Song } from "@/lib/db";
 import { cifraHits } from "@/lib/match";
@@ -61,7 +61,8 @@ export async function saveMember(f: FormData) {
   if (id) {
     await run("UPDATE members SET name=?, roles=?, phone=? WHERE id=?", [name, str(f, "roles"), str(f, "phone"), id]);
   } else {
-    await run("INSERT INTO members (name, roles, phone, token) VALUES (?,?,?,?)", [name, str(f, "roles"), str(f, "phone"), newToken()]);
+    // quem entra na equipe já nasce com a senha inicial (troca no 1º acesso)
+    await run("INSERT INTO members (name, roles, phone, token, pin_hash, must_change) VALUES (?,?,?,?,?,1)", [name, str(f, "roles"), str(f, "phone"), newToken(), hashSecret(INITIAL_PASSWORD)]);
   }
   revalidatePath("/", "layout");
 }
@@ -359,12 +360,24 @@ export async function setTeamPassword(f: FormData) {
   revalidatePath("/", "layout");
 }
 
-/** O administrador troca a própria senha de entrada. */
-export async function setMyPassword(f: FormData) {
+/** Qualquer pessoa troca a própria senha (confirmando a atual). */
+export async function changeMyPassword(current: string, next: string): Promise<{ ok: true } | { error: string }> {
+  const me = await currentUser();
+  if (!me) return { error: "Entre de novo no app." };
+  const row = await one<{ pin_hash: string }>("SELECT pin_hash FROM members WHERE id=?", [me.id]);
+  if (row?.pin_hash && !checkSecret(current, row.pin_hash)) return { error: "A senha atual não confere." };
+  const bad = badPassword(next);
+  if (bad) return { error: bad };
+  await run("UPDATE members SET pin_hash=?, must_change=0, pin_fails=0, pin_until='' WHERE id=?", [hashSecret(next), me.id]);
+  return { ok: true };
+}
+
+/** Esqueceu a senha: volta para a inicial (troca obrigatória no próximo acesso) e desconecta os aparelhos da pessoa. */
+export async function resetMemberPassword(memberId: number) {
   const me = await requireLevel("lider");
-  if (!(await isAdmin(me))) throw new Error("Só o administrador tem senha pessoal.");
-  const pass = String(f.get("pass") ?? "");
-  if (pass.length < 6) return;
-  await run("UPDATE members SET pin_hash=?, pin_fails=0, pin_until='' WHERE id=?", [hashSecret(pass), me.id]);
+  if (!(await seesAccessLog(me))) throw new Error("Sem permissão para zerar senhas.");
+  await run("UPDATE members SET pin_hash=?, must_change=1, pin_fails=0, pin_until='', token=? WHERE id=?", [
+    hashSecret(INITIAL_PASSWORD), newToken(), memberId,
+  ]);
   revalidatePath("/", "layout");
 }

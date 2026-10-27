@@ -1,17 +1,19 @@
-import { isAdmin, pageUser, teamPassword } from "@/lib/auth";
-import { all, type Member } from "@/lib/db";
+import { isAdmin, pageUser, seesAccessLog, teamPassword } from "@/lib/auth";
+import { all } from "@/lib/db";
 import { ddmm, today } from "@/lib/format";
 import { FUNCOES } from "@/lib/roles";
-import { deleteMember, saveMember, setMyPassword, setTeamPassword } from "../actions";
-import MemberCard from "./MemberCard";
+import { deleteMember, resetMemberPassword, saveMember, setTeamPassword } from "../actions";
+import MemberCard, { type MemberRow } from "./MemberCard";
 
 export const dynamic = "force-dynamic";
 
 export default async function Equipe() {
   const me = await pageUser("lider");
   const admin = await isAdmin(me);
+  const canReset = await seesAccessLog(me);
   const pass = await teamPassword();
-  const members = await all<Member>("SELECT * FROM members ORDER BY name");
+  const members = (await all<MemberRow>("SELECT id, name, roles, phone, must_change FROM members ORDER BY name"))
+    .map((m) => ({ id: Number(m.id), name: m.name, roles: m.roles, phone: m.phone, must_change: Number(m.must_change) }));
   const upcoming = await all<{ member_id: number; date: string; role: string }>(
     `SELECT sm.member_id, s.date, sm.role FROM service_members sm JOIN services s ON s.id=sm.service_id
      WHERE s.date >= ? ORDER BY s.date`,
@@ -39,12 +41,6 @@ export default async function Equipe() {
               </label>
               <button className="btn">Salvar senha</button>
             </form>
-            <form action={setMyPassword} className="tools">
-              <label className="f">Minha senha de entrada (perfil {me.name})
-                <input type="password" name="pass" minLength={6} required autoComplete="new-password" placeholder="nova senha" />
-              </label>
-              <button className="btn">Trocar minha senha</button>
-            </form>
           </>
         ) : (
           <p className="pass-ro">Senha do grupo: <b>{pass}</b> <span className="muted">(só o administrador troca)</span></p>
@@ -55,7 +51,8 @@ export default async function Equipe() {
       </div>
       <div className="team">
         {members.map((m) => (
-          <MemberCard key={m.id} member={m} funcoes={FUNCOES} meta={meta(Number(m.id))} save={saveMember} remove={deleteMember} />
+          <MemberCard key={m.id} member={m} funcoes={FUNCOES} meta={meta(Number(m.id))} save={saveMember} remove={deleteMember}
+            resetPassword={canReset && Number(m.id) !== me.id ? resetMemberPassword : undefined} />
         ))}
       </div>
       {members.length === 0 && (

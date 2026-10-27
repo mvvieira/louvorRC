@@ -89,6 +89,14 @@ async function migrate(client: Client) {
  */
 async function migrateAccess(client: Client) {
   const cols = await client.execute("PRAGMA table_info(members)");
+  // senha individual: hash, tentativas, bloqueio e "trocar no próximo acesso"
+  const pinCols: [string, string][] = [
+    ["pin_hash", "TEXT NOT NULL DEFAULT ''"], ["pin_fails", "INTEGER NOT NULL DEFAULT 0"],
+    ["pin_until", "TEXT NOT NULL DEFAULT ''"], ["must_change", "INTEGER NOT NULL DEFAULT 0"],
+  ];
+  for (const [c, def] of pinCols) {
+    if (!cols.rows.some((r) => r.name === c)) await client.execute(`ALTER TABLE members ADD COLUMN ${c} ${def}`);
+  }
   if (!cols.rows.some((r) => r.name === "access")) {
     await client.batch(
       [
