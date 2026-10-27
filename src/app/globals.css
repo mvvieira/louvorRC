@@ -23,7 +23,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Topo */
 header.top { position: sticky; top: 0; z-index: 20; background: var(--bar); color: var(--ink); border-bottom: 1px solid var(--line); box-shadow: 0 1px 8px rgba(16, 24, 40, .05); }
-.top .wrap { display: flex; align-items: center; gap: 20px; min-height: 64px; flex-wrap: wrap; }
+.top .wrap { display: flex; align-items: center; gap: 8px 20px; min-height: 64px; flex-wrap: wrap; padding-top: 12px; padding-bottom: 10px; }
 .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; text-decoration: none; }
 .brand h1 { font-size: 21px; font-weight: 800; font-stretch: 75%; letter-spacing: .01em; text-transform: uppercase; color: var(--ink); display: grid; line-height: 1; }
 .brand h1 small { font: 700 10px/1 var(--body); letter-spacing: .28em; color: var(--flame); margin-bottom: 3px; }
