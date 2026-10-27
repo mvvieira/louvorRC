@@ -506,3 +506,11 @@ main.wrap:has(.esc-full) { max-width: none; padding: 0 16px; }
 /* Visual Sereno: bordas de destaque mais finas */
 .today-card, .who-sum, .access-box, .edit-hint { border-left-width: 3px; }
 .member .pass-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; margin-top: -4px; }
+
+/* Switch de tema (claro Sereno ↔ escuro Noite), ao lado do nome */
+.theme-switch { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 999px; color: var(--ink-2); font-size: 14px; line-height: 1; }
+.theme-switch:focus-visible { outline: 3px solid var(--flame); outline-offset: 2px; }
+.ts-track { position: relative; width: 34px; height: 20px; border-radius: 999px; background: var(--line); transition: background .2s; }
+.ts-knob { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--paper); box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .2s; }
+.theme-switch[aria-checked="true"] .ts-track { background: var(--flame); }
+.theme-switch[aria-checked="true"] .ts-knob { transform: translateX(14px); background: var(--on-flame); }

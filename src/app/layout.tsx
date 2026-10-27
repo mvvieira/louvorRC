@@ -3,6 +3,7 @@ import Link from "next/link";
 import { currentUser, seesAccessLog } from "@/lib/auth";
 import { logout } from "./actions";
 import NavTabs from "./NavTabs";
+import ThemeSwitch from "./ThemeSwitch";
 import { cookies } from "next/headers";
 import "./globals.css";
 // temas guardados para virar opção numa próxima entrega (só valem com o cookie rc_tema; o oficial é o globals.css)
@@ -57,6 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </header>
         {me && (
           <div className="wrap me-bar">
+            <ThemeSwitch dark={tema === "noite"} />
             <span><b>{me.name}</b>{me.roles && <> · {me.roles}</>}</span>
             <Link className="btn ghost small" href="/senha">Trocar senha</Link>
             <form action={logout}><button className="btn ghost small">Trocar de pessoa</button></form>
