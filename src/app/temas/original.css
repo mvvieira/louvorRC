@@ -1,0 +1,34 @@
+/*
+ * Tema "Original" (guardado para ser opcional numa próxima entrega): o visual laranja da 1ª versão,
+ * baseado no Instagram @igrejarasgandoosceus — claro/escuro conforme o celular. Ativado por /tema/original.
+ */
+:root[data-tema="original"] {
+  --sky: #EEEBE5; --paper: #FBFAF7; --ink: #252422; --ink-2: #6A645B; --line: #DCD6CC;
+  --flame: #C9420A; --flame-soft: #FBE4D4; --male: #1F78B0; --female: #B23A6E; --ok: #2F7D4F; --warn: #9A6200;
+  --field: #F4F1EC; --bar: #1B1A18; --on-flame: #fff;
+  --brand: #DE4708; --cream: #E0C8A2;
+  --t-dom: #C9420A; --t-int: #C9420A; --t-qui: #C9420A; --t-bat: #C9420A; --t-esp: #C9420A;
+  --me: #F5D90A; --me-ink: #1B1A18; --me-soft: color-mix(in srgb, #FDEF08 22%, var(--paper)); --me-col: color-mix(in srgb, #FDEF08 32%, var(--paper));
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-tema="original"] {
+    --sky: #161514; --paper: #23221F; --ink: #F2EDE4; --ink-2: #B3AA9A; --line: #3A3733;
+    --flame: #F2601C; --flame-soft: #3A2116; --male: #6FC3EE; --female: #F08FB6; --ok: #74C795; --warn: #E9B54E;
+    --field: #2C2A27; --bar: #0F0E0D; --on-flame: #161514;
+    --t-dom: #F2601C; --t-int: #F2601C; --t-qui: #F2601C; --t-bat: #F2601C; --t-esp: #F2601C;
+    --me-soft: color-mix(in srgb, #FDEF08 11%, var(--paper)); --me-col: color-mix(in srgb, #FDEF08 17%, var(--paper));
+    color-scheme: dark;
+  }
+}
+:root[data-tema="original"] header.top { color: var(--sky); border-bottom: 3px solid var(--brand); box-shadow: none; }
+:root[data-tema="original"] .brand h1 { color: #F2EDE4; }
+:root[data-tema="original"] .brand h1 small { color: var(--brand); }
+:root[data-tema="original"] nav.tabs a { color: #CFC6B6; }
+:root[data-tema="original"] nav.tabs a:hover { color: #fff; background: none; }
+:root[data-tema="original"] nav.tabs a[aria-current="page"] { background: var(--brand); color: #fff; }
+:root[data-tema="original"] .today-card,
+:root[data-tema="original"] .who-sum,
+:root[data-tema="original"] .access-box,
+:root[data-tema="original"] .edit-hint { border-left-width: 5px; }
+:root[data-tema="original"] .rel-cov td.cov-bad { background: color-mix(in srgb, #E5484D 22%, var(--paper)); }

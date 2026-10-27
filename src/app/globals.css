@@ -1,22 +1,15 @@
 :root {
-  /* Identidade do Instagram @igrejarasgandoosceus: carvão, laranja queimado, creme */
-  --sky: #EEEBE5; --paper: #FBFAF7; --ink: #252422; --ink-2: #6A645B; --line: #DCD6CC;
-  --flame: #C9420A; --flame-soft: #FBE4D4; --male: #1F78B0; --female: #B23A6E; --ok: #2F7D4F; --warn: #9A6200;
-  --field: #F4F1EC; --bar: #1B1A18; --on-flame: #fff;
-  --brand: #DE4708; --cream: #E0C8A2; --logo-blue: #45B3E7; --logo-yellow: #FDEF08;
+  /* Visual oficial "Sereno": claro, calmo, um único destaque azul (o céu do logo). Temas guardados em ./temas/ */
+  --sky: #F5F6F8; --paper: #FFFFFF; --field: #F2F4F7; --line: #E4E7EC;
+  --ink: #1D2433; --ink-2: #667085;
+  --flame: #2F6FA3; --flame-soft: #EAF2F9; --on-flame: #FFFFFF; --brand: #2F6FA3;
+  --male: #2F6FA3; --female: #9C4F74; --ok: #2E7D5B; --warn: #A76B12; --cream: #C9B48F;
+  --logo-blue: #45B3E7; --logo-yellow: #FDEF08;
   /* todos os cultos com a mesma cor (sem distinção por tipo) */
-  --t-dom: #C9420A; --t-int: #C9420A; --t-qui: #C9420A; --t-bat: #C9420A; --t-esp: #C9420A;
+  --t-dom: #2F6FA3; --t-int: #2F6FA3; --t-qui: #2F6FA3; --t-bat: #2F6FA3; --t-esp: #2F6FA3;
+  --bar: #FFFFFF;
   --display: "Archivo", "Arial Narrow", system-ui, sans-serif; --body: "Inter", system-ui, sans-serif;
   color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --sky: #161514; --paper: #23221F; --ink: #F2EDE4; --ink-2: #B3AA9A; --line: #3A3733;
-    --flame: #F2601C; --flame-soft: #3A2116; --male: #6FC3EE; --female: #F08FB6; --ok: #74C795; --warn: #E9B54E;
-    --field: #2C2A27; --bar: #0F0E0D; --on-flame: #161514;
-    --t-dom: #F2601C; --t-int: #F2601C; --t-qui: #F2601C; --t-bat: #F2601C; --t-esp: #F2601C;
-    color-scheme: dark;
-  }
 }
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; background: var(--sky); color: var(--ink); font: 16px/1.5 var(--body); }
@@ -29,16 +22,16 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .hidden { display: none !important; }
 
 /* Topo */
-header.top { position: sticky; top: 0; z-index: 20; background: var(--bar); color: var(--sky); }
+header.top { position: sticky; top: 0; z-index: 20; background: var(--bar); color: var(--ink); border-bottom: 1px solid var(--line); box-shadow: 0 1px 8px rgba(16, 24, 40, .05); }
 .top .wrap { display: flex; align-items: center; gap: 20px; min-height: 64px; flex-wrap: wrap; }
 .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; text-decoration: none; }
-.brand h1 { font-size: 21px; font-weight: 800; font-stretch: 75%; letter-spacing: .01em; text-transform: uppercase; color: #F2EDE4; display: grid; line-height: 1; }
-.brand h1 small { font: 700 10px/1 var(--body); letter-spacing: .28em; color: var(--brand); margin-bottom: 3px; }
+.brand h1 { font-size: 21px; font-weight: 800; font-stretch: 75%; letter-spacing: .01em; text-transform: uppercase; color: var(--ink); display: grid; line-height: 1; }
+.brand h1 small { font: 700 10px/1 var(--body); letter-spacing: .28em; color: var(--flame); margin-bottom: 3px; }
 .brand .logo { width: 34px; height: 34px; align-self: center; flex: none; }
 nav.tabs { display: flex; gap: 2px; flex-wrap: wrap; }
-nav.tabs a { color: #CFC6B6; padding: 8px 13px; border-radius: 999px; font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; }
-nav.tabs a:hover { color: #fff; }
-nav.tabs a[aria-current="page"] { background: var(--brand); color: #fff; }
+nav.tabs a { color: var(--ink-2); padding: 8px 13px; border-radius: 999px; font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; }
+nav.tabs a:hover { color: var(--ink); background: var(--field); }
+nav.tabs a[aria-current="page"] { background: var(--flame-soft); color: var(--flame); }
 main.wrap { padding-top: 24px; padding-bottom: 60px; }
 
 /* Controles */
@@ -324,7 +317,6 @@ select.slot.away { border-color: var(--warn); color: var(--warn); font-weight: 7
 .eg .p.away, .eg td .p.away { color: var(--warn); text-decoration: line-through; }
 
 /* ---------- Identidade @igrejarasgandoosceus ---------- */
-header.top { border-bottom: 3px solid var(--brand); }
 h2 { text-transform: uppercase; letter-spacing: .005em; font-size: 34px; }
 h3 { text-transform: uppercase; letter-spacing: .02em; }
 .sec h3 { font-size: 20px; }
@@ -437,9 +429,7 @@ h3 { text-transform: uppercase; letter-spacing: .02em; }
 .access-box p { margin: 0; font-size: 14px; }
 
 /* Calendário: dias em que quem está usando o app foi escalado (amarelo do logo, diferente do laranja de "hoje") */
-:root { --me: #F5D90A; --me-ink: #1B1A18; --me-soft: color-mix(in srgb, #FDEF08 22%, var(--paper)); --me-col: color-mix(in srgb, #FDEF08 32%, var(--paper)); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --me-soft: color-mix(in srgb, #FDEF08 11%, var(--paper)); --me-col: color-mix(in srgb, #FDEF08 17%, var(--paper)); } }
-:root[data-theme="dark"] { --me-soft: color-mix(in srgb, #FDEF08 11%, var(--paper)); --me-col: color-mix(in srgb, #FDEF08 17%, var(--paper)); }
+:root { --me: #E7B53C; --me-ink: #3A2C05; --me-soft: #FFF8E6; --me-col: #FDF0CC; }
 .cal-d.mine { background: var(--me-soft); box-shadow: inset 0 0 0 2px var(--me); }
 .cal-d.mine.today { box-shadow: inset 0 0 0 3px var(--flame), inset 0 0 0 6px var(--me); }
 .cal-d.mine.out { opacity: .8; }
@@ -498,7 +488,7 @@ h3 { text-transform: uppercase; letter-spacing: .02em; }
 .rel-cov td b { font-size: 16px; }
 .rel-cov td.cov-ok { background: color-mix(in srgb, var(--ok) 18%, var(--paper)); }
 .rel-cov td.cov-wait { background: color-mix(in srgb, var(--warn) 18%, var(--paper)); }
-.rel-cov td.cov-bad { background: color-mix(in srgb, #E5484D 22%, var(--paper)); }
+.rel-cov td.cov-bad { background: #FDECEC; }
 .rel-legend { font-size: 13px; margin-top: 8px; }
 .rel-legend span { padding: 0 6px; border-radius: 6px; }
 .rel-legend .cov-ok { background: color-mix(in srgb, var(--ok) 25%, var(--paper)); }
@@ -512,3 +502,6 @@ main.wrap:has(.esc-full) { max-width: none; padding: 0 16px; }
 .wrap:has(.esc-full) .eg .colh { min-width: 78px; padding: 6px; }
 .wrap:has(.esc-full) .eg .colh .tt { max-width: 96px; font-size: 11px; }
 .wrap:has(.esc-full) .eg tbody th { min-width: 96px; font-size: 14px; }
+
+/* Visual Sereno: bordas de destaque mais finas */
+.today-card, .who-sum, .access-box, .edit-hint { border-left-width: 3px; }
