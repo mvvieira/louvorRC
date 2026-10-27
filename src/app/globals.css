@@ -512,3 +512,20 @@ main.wrap:has(.esc-full) { max-width: none; padding: 0 16px; }
 .approve-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin: 0 0 12px; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--paper)); font-size: 15px; }
 .approve-bar.ok { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, var(--paper)); }
 .approve-bar form { display: contents; }
+
+/* Celular: menu numa linha só, rolando para o lado (sem quebrar em várias linhas) */
+@media (max-width: 760px) {
+  nav.tabs {
+    flex-wrap: nowrap; overflow-x: auto; width: calc(100% + 36px); margin: 0 -18px; padding: 2px 18px 4px;
+    scrollbar-width: none; scroll-snap-type: x proximity;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 28px), transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 28px), transparent 100%);
+  }
+  nav.tabs::-webkit-scrollbar { display: none; }
+  nav.tabs a { flex: none; white-space: nowrap; scroll-snap-align: center; padding: 8px 12px; font-size: 12px; }
+  .top .wrap { padding-bottom: 6px; }
+  .me-bar { gap: 2px 8px; font-size: 12px; padding-top: 6px; flex-wrap: wrap; }
+  .theme-switch .ts-ic { display: none; }
+  .me-bar > span, .me-bar .btn { white-space: nowrap; }
+  .me-bar .btn.small { padding: 4px 6px; font-size: 12px; }
+}
