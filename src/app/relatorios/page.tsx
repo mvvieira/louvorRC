@@ -60,14 +60,18 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
     .filter((r) => !status || (status === "nao" ? r.done === 0 : status === "ok" ? total && r.done === total : r.done > 0 && r.done < total))
     .sort((a, b) => a.done - b.done || a.name.localeCompare(b.name));
 
-  const cobrar = [
-    `📋 *Disponibilidade de ${mes}*`,
+  // mensagem para o grupo: só percentuais, sem citar nomes (servir é voluntário)
+  const pct = (n: number) => Math.round((n / Math.max(1, rows.length)) * 100);
+  const cobrar = none.length + partial.length === 0 ? [
+    `💙 *Disponibilidade de ${mes}*`,
     "",
-    ...(none.length ? [`Ainda não marcaram: ${none.map((r) => r.name).join(", ")}`] : []),
-    ...(partial.length ? [`Faltam alguns cultos: ${partial.map((r) => r.name).join(", ")}`] : []),
-    ...(none.length + partial.length === 0 ? ["✓ Todo mundo já marcou. Obrigado! 🙌"] : []),
+    `100% do ministério já marcou a disponibilidade. Muito obrigado a cada um! 🙌`,
+  ].join("\n") : [
+    `💙 *Disponibilidade de ${mes}*`,
     "",
-    `Entre em louvor-rc.vercel.app → *Disponibilidade* e marque os cultos de ${mes} 🙏 (leva menos de 1 minuto)`,
+    `Já temos ${pct(full.length)}% do ministério com a disponibilidade marcada${partial.length ? ` e ${pct(partial.length)}% com parte dos cultos` : ""}. Obrigado! 🙌`,
+    "",
+    `Se você ainda não marcou, quando puder entre em louvor-rc.vercel.app → *Disponibilidade* e conte pra gente em quais cultos de ${mes} você pode servir. Leva menos de 1 minuto e ajuda muito a montar uma escala equilibrada para todos 🙏`,
   ].join("\n");
 
   // cobertura: quantas pessoas da função podem em cada culto, comparado ao que o culto precisa
@@ -127,7 +131,7 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
           <h2>{mes} {y}</h2>
           <Link className="btn icon" href={href({ m: shiftMonth(month, 1) })} aria-label="Próximo mês">›</Link>
         </div>
-        <CopyButton text={cobrar} label="Copiar cobrança para o grupo" done="Mensagem copiada" className="btn primary" />
+        <CopyButton text={cobrar} label="Copiar lembrete para o grupo" done="Mensagem copiada" className="btn primary" />
       </div>
       <p className="muted rel-sub">Acompanhamento da disponibilidade de {mes}: {total} culto{total === 1 ? "" : "s"} no mês.</p>
 
