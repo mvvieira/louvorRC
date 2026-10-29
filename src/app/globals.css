@@ -538,17 +538,11 @@ main.wrap:has(.esc-full) { max-width: none; padding: 0 16px; }
 .rel-kinds .wait b { color: var(--warn); }
 .rel-kinds .bad { border-left-color: #E5484D; }
 .rel-kinds .bad b { color: #E5484D; }
-.rel-roles, .rel-oks { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0; font-size: 14px; }
-.rel-cultos { list-style: none; margin: 10px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
-.rel-cultos > li { background: var(--paper); border: 1px solid var(--line); border-left: 5px solid var(--warn); border-radius: 14px; padding: 12px 14px; }
-.rel-cultos > li.bad { border-left-color: #E5484D; }
-.rel-ct { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.rel-ct a { text-decoration: none; min-width: 0; }
-.rel-ct a b { text-transform: capitalize; }
-.rel-ct .btn { flex: none; }
-.rel-faltam { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 0; }
-.rel-faltam .chip { font-size: 12px; padding: 1px 8px; }
-.rel-open { margin-top: 6px; font-size: 13px; }
-.rel-open summary { cursor: pointer; color: var(--ink-2); }
-.rel-open div { margin-top: 3px; }
-@media (max-width: 640px) { .rel-cultos { grid-template-columns: 1fr; } }
+.rel-roles { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0; font-size: 14px; }
+/* a tabela de cobertura usa a largura toda da tela; o resto da página continua na coluna normal */
+main.wrap:has(.rel-wide) { max-width: none; }
+.rel > :not(.rel-wide) { max-width: 1144px; margin-inline: auto; }
+.rel-cov .colh { min-width: 104px; height: auto; }
+.rel-cov thead th { position: relative; }
+.rel-ask { display: flex; margin: 0 6px 8px; padding: 3px 6px; font-size: 12px; white-space: nowrap; color: var(--flame); border-color: var(--flame); }
+.rel-ask + .toast { position: absolute; left: 50%; bottom: -26px; transform: translateX(-50%); z-index: 4; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 1px 8px; font-size: 12px; pointer-events: none; }

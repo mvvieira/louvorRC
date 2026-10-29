@@ -106,6 +106,7 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
     "",
     `Se você pode servir nesse culto, marque em louvor-rc.vercel.app → *Disponibilidade* 🙏`,
   ].join("\n");
+  const falta = new Map(faltando.map(({ s, missing }) => [s.id, pedido(s, missing, [...new Set(missing.flatMap((x) => x.open))])]));
   const reforco = [
     `🙏 *Escala de ${mes}: precisamos de reforço*`,
     "",
@@ -159,54 +160,9 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
           </p>
         )}
 
-        {faltando.length > 0 ? (
-          <ul className="rel-cultos">
-            {faltando.map(({ s, kind, missing }) => {
-              const open = [...new Set(missing.flatMap((x) => x.open))];
-              return (
-                <li key={s.id} className={kind}>
-                  <div className="rel-ct">
-                    <Link href={`/cultos/${s.id}`}><b>{dayName(s.date)} {ddmm(s.date)}</b> {s.title}</Link>
-                    <CopyButton text={pedido(s, missing, open)} label="Pedir reforço" done="Pedido copiado" className="btn small" />
-                  </div>
-                  <p className="rel-faltam">
-                    {missing.map((x) => (
-                      <span key={x.r} className={`chip ${x.hard ? "no" : "miss"}`}
-                        title={x.hard ? (x.open.length ? `mesmo se todos puderem, faltam ${x.hard}` : "ninguém da equipe pode") : "depende de quem não respondeu"}>
-                        {label(x.r)}{x.n > 1 && ` ×${x.n}`}
-                      </span>
-                    ))}
-                  </p>
-                  {open.length > 0 && (
-                    <details className="rel-open">
-                      <summary>{open.length} ainda não respondeu{open.length === 1 ? "" : "ram"}</summary>
-                      {missing.filter((x) => x.open.length).map((x) => (
-                        <div key={x.r}><b>{label(x.r)}:</b> {x.open.join(", ")}</div>
-                      ))}
-                    </details>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
-        {faltando.length > 0 && (
-          <p className="muted rel-legend">
-            Funções com borda tracejada dependem de quem ainda não respondeu; em vermelho, falta gente mesmo com todos respondendo.
-          </p>
-        )}
         {!faltando.length && total > 0 && (
           <p className="muted">
             {count("pronta") === total ? `Todos os cultos de ${mes} já têm escala montada.` : `Nenhum culto de ${mes} está faltando gente. 🙌`}
-          </p>
-        )}
-
-        {count("ok") > 0 && (
-          <p className="rel-oks">
-            <span className="muted">Cobertos:</span>
-            {cultos.filter((c) => c.kind === "ok").map(({ s }) => (
-              <Link key={s.id} className="chip ok" href={`/cultos/${s.id}`}>{dayName(s.date)} {ddmm(s.date)} · {s.title}</Link>
-            ))}
           </p>
         )}
         {count("sem") > 0 && (
@@ -216,7 +172,7 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
         )}
       </section>
 
-      <section className="sec">
+      <section className="sec rel-wide">
         <h3>Cobertura por função <small>pessoas que podem / precisa</small></h3>
         <div className="grid-wrap">
           <table className="eg rel-cov">
@@ -231,6 +187,9 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
                       <span className="tt">{s.title}</span>
                       {ready.has(s.id) && <span className="chip ok rel-ready">escala pronta</span>}
                     </Link>
+                    {falta.has(s.id) && (
+                      <CopyButton text={falta.get(s.id)!} label="Pedir reforço" done="Copiado" className="btn small rel-ask" />
+                    )}
                   </th>
                 ))}
               </tr>
