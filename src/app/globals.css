@@ -542,10 +542,13 @@ main.wrap:has(.esc-full) { max-width: none; padding: 0 16px; }
 .rel-cultos { list-style: none; margin: 10px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
 .rel-cultos > li { background: var(--paper); border: 1px solid var(--line); border-left: 5px solid var(--warn); border-radius: 14px; padding: 12px 14px; }
 .rel-cultos > li.bad { border-left-color: #E5484D; }
-.rel-ct { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
-.rel-ct a { text-decoration: none; }
+.rel-ct { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.rel-ct a { text-decoration: none; min-width: 0; }
 .rel-ct a b { text-transform: capitalize; }
-.rel-cultos ul { margin: 0; padding-left: 18px; font-size: 14px; }
-.rel-cultos ul li { margin: 2px 0; }
-.rel-hard { color: #E5484D; font-weight: 600; }
+.rel-ct .btn { flex: none; }
+.rel-faltam { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 0; }
+.rel-faltam .chip { font-size: 12px; padding: 1px 8px; }
+.rel-open { margin-top: 6px; font-size: 13px; }
+.rel-open summary { cursor: pointer; color: var(--ink-2); }
+.rel-open div { margin-top: 3px; }
 @media (max-width: 640px) { .rel-cultos { grid-template-columns: 1fr; } }

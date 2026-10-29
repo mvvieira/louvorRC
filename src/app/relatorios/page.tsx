@@ -98,6 +98,14 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
     .map((r) => ({ r, n: faltando.filter((c) => c.missing.some((x) => x.r === r)).length, hard: faltando.filter((c) => c.missing.some((x) => x.r === r && x.hard)).length }))
     .filter((x) => x.n)
     .sort((a, b) => b.n - a.n);
+  const pedido = (s: { date: string; title: string }, missing: { r: string; n: number }[], open: string[]) => [
+    `🙏 *Pedido de reforço: ${dayName(s.date)} ${ddmm(s.date)} (${s.title})*`,
+    "",
+    `Precisamos de: ${missing.map((x) => `${label(x.r)}${x.n > 1 ? ` (${x.n})` : ""}`).join(", ")}`,
+    ...(open.length ? [`Ainda não marcaram esse culto: ${open.join(", ")}`] : []),
+    "",
+    `Se você pode servir nesse culto, marque em louvor-rc.vercel.app → *Disponibilidade* 🙏`,
+  ].join("\n");
   const reforco = [
     `🙏 *Escala de ${mes}: precisamos de reforço*`,
     "",
@@ -131,7 +139,7 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
       <section className="sec">
         <div className="rel-head">
           <h3>Cultos do mês <small>já dá para escalar?</small></h3>
-          {faltando.length > 0 && <CopyButton text={reforco} label="Copiar pedido de reforço" done="Mensagem copiada" className="btn" />}
+          {faltando.length > 0 && <CopyButton text={reforco} label="Pedir reforço para todos" done="Pedido copiado" className="btn primary" />}
         </div>
         <div className="acc-nums rel-kinds">
           <div className="ok"><b>{count("ok")}</b><span>cobertos: já tem gente para todas as funções</span></div>
@@ -153,25 +161,41 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
 
         {faltando.length > 0 ? (
           <ul className="rel-cultos">
-            {faltando.map(({ s, kind, missing }) => (
-              <li key={s.id} className={kind}>
-                <div className="rel-ct">
-                  <Link href={`/cultos/${s.id}`}><b>{dayName(s.date)} {ddmm(s.date)}</b> {s.title}</Link>
-                  <span className={`chip ${kind === "bad" ? "no" : "miss"}`}>{kind === "bad" ? "falta gente" : "aguardando respostas"}</span>
-                </div>
-                <ul>
-                  {missing.map((x) => (
-                    <li key={x.r}>
-                      <b>{label(x.r)}</b>{x.n > 1 && ` (faltam ${x.n})`}
-                      {x.open.length > 0 && <span className="muted"> · ainda não responderam: {x.open.join(", ")}</span>}
-                      {x.hard > 0 && <span className="rel-hard"> · {x.open.length ? `mesmo se todos puderem, falta${x.hard > 1 ? `m ${x.hard}` : ""}` : "ninguém da equipe pode"}</span>}
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
+            {faltando.map(({ s, kind, missing }) => {
+              const open = [...new Set(missing.flatMap((x) => x.open))];
+              return (
+                <li key={s.id} className={kind}>
+                  <div className="rel-ct">
+                    <Link href={`/cultos/${s.id}`}><b>{dayName(s.date)} {ddmm(s.date)}</b> {s.title}</Link>
+                    <CopyButton text={pedido(s, missing, open)} label="Pedir reforço" done="Pedido copiado" className="btn small" />
+                  </div>
+                  <p className="rel-faltam">
+                    {missing.map((x) => (
+                      <span key={x.r} className={`chip ${x.hard ? "no" : "miss"}`}
+                        title={x.hard ? (x.open.length ? `mesmo se todos puderem, faltam ${x.hard}` : "ninguém da equipe pode") : "depende de quem não respondeu"}>
+                        {label(x.r)}{x.n > 1 && ` ×${x.n}`}
+                      </span>
+                    ))}
+                  </p>
+                  {open.length > 0 && (
+                    <details className="rel-open">
+                      <summary>{open.length} ainda não respondeu{open.length === 1 ? "" : "ram"}</summary>
+                      {missing.filter((x) => x.open.length).map((x) => (
+                        <div key={x.r}><b>{label(x.r)}:</b> {x.open.join(", ")}</div>
+                      ))}
+                    </details>
+                  )}
+                </li>
+              );
+            })}
           </ul>
-        ) : total > 0 && (
+        ) : null}
+        {faltando.length > 0 && (
+          <p className="muted rel-legend">
+            Funções com borda tracejada dependem de quem ainda não respondeu; em vermelho, falta gente mesmo com todos respondendo.
+          </p>
+        )}
+        {!faltando.length && total > 0 && (
           <p className="muted">
             {count("pronta") === total ? `Todos os cultos de ${mes} já têm escala montada.` : `Nenhum culto de ${mes} está faltando gente. 🙌`}
           </p>
