@@ -13,7 +13,7 @@ const quando = (at: string) =>
   new Date(at.replace(" ", "T") + "Z").toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 /** Acompanhamento do preenchimento da disponibilidade do mês (liderança). */
-export default async function Relatorios({ searchParams }: { searchParams: Promise<{ m?: string; f?: string }> }) {
+export default async function Relatorios({ searchParams }: { searchParams: Promise<{ m?: string; f?: string; s?: string }> }) {
   const me = await pageUser("lider");
   const admin = await seesAccessLog(me);
   const sp = await searchParams;
@@ -22,10 +22,13 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
   const [y, m] = month.split("-").map(Number);
   const mes = MESES[m - 1];
   const role = FUNCOES.includes(sp.f ?? "") ? sp.f! : "";
-  const href = (o: { m?: string; f?: string }) => {
+  const STATUS = { nao: "Não marcaram", parcial: "Só alguns cultos", ok: "Marcaram tudo" };
+  const status = (sp.s ?? "") in STATUS ? (sp.s as keyof typeof STATUS) : "";
+  const href = (o: { m?: string; f?: string; s?: string }, hash = "") => {
     const q = new URLSearchParams({ m: o.m ?? month });
     if (o.f ?? role) q.set("f", o.f ?? role);
-    return `/relatorios?${q}`;
+    if (o.s ?? status) q.set("s", o.s ?? status);
+    return `/relatorios?${q}${hash}`;
   };
 
   const { services, people, avail, template, existing } = await monthData(month);
@@ -54,6 +57,7 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
   const none = rows.filter((r) => r.done === 0);
   const shown = rows
     .filter((r) => !role || r.roles.includes(role))
+    .filter((r) => !status || (status === "nao" ? r.done === 0 : status === "ok" ? total && r.done === total : r.done > 0 && r.done < total))
     .sort((a, b) => a.done - b.done || a.name.localeCompare(b.name));
 
   const cobrar = [
@@ -220,14 +224,24 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
         </p>
       </section>
 
-      <section className="sec">
+      <section className="sec" id="pessoas">
         <h3>Por pessoa <small>{shown.length}</small></h3>
-        <nav className="seg small" aria-label="Função" style={{ marginBottom: 10 }}>
-          <Link href={href({ f: "" })} aria-current={!role ? "page" : undefined}>Todos</Link>
-          {FUNCOES.filter((r) => people.some((p) => p.roles.includes(r))).map((r) => (
-            <Link key={r} href={href({ f: r })} aria-current={role === r ? "page" : undefined}>{r}</Link>
-          ))}
-        </nav>
+        <div className="rel-filters">
+          <nav className="seg small" aria-label="Situação">
+            <Link href={href({ s: "" }, "#pessoas")} aria-current={!status ? "page" : undefined}>Todos</Link>
+            {(Object.keys(STATUS) as (keyof typeof STATUS)[]).map((k) => (
+              <Link key={k} href={href({ s: k }, "#pessoas")} aria-current={status === k ? "page" : undefined}>
+                {STATUS[k]} ({(k === "nao" ? none : k === "ok" ? full : partial).filter((r) => !role || r.roles.includes(role)).length})
+              </Link>
+            ))}
+          </nav>
+          <nav className="seg small" aria-label="Função">
+            <Link href={href({ f: "" }, "#pessoas")} aria-current={!role ? "page" : undefined}>Todas as funções</Link>
+            {FUNCOES.filter((r) => people.some((p) => p.roles.includes(r))).map((r) => (
+              <Link key={r} href={href({ f: r }, "#pessoas")} aria-current={role === r ? "page" : undefined}>{r}</Link>
+            ))}
+          </nav>
+        </div>
         <div className="acc-table">
           <table>
             <thead>
@@ -247,6 +261,9 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
                   {inApp && <td>{inApp.has(r.id) ? "✓ sim" : <span className="muted">nunca entrou</span>}</td>}
                 </tr>
               ))}
+              {!shown.length && (
+                <tr><td colSpan={inApp ? 5 : 4} className="muted">{status === "nao" ? "Todo mundo já marcou. 🙌" : "Ninguém nesse filtro."}</td></tr>
+              )}
             </tbody>
           </table>
         </div>

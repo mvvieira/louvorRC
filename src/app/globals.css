@@ -546,3 +546,5 @@ main.wrap:has(.rel-wide) { max-width: none; }
 .rel-cov thead th { position: relative; }
 .rel-ask { display: flex; margin: 0 6px 8px; padding: 3px 6px; font-size: 12px; white-space: nowrap; color: var(--flame); border-color: var(--flame); }
 .rel-ask + .toast { position: absolute; left: 50%; bottom: -26px; transform: translateX(-50%); z-index: 4; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 1px 8px; font-size: 12px; pointer-events: none; }
+.rel-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+#pessoas { scroll-margin-top: 90px; }
