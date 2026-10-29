@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { pageUser, seesAccessLog } from "@/lib/auth";
 import { all } from "@/lib/db";
-import { INSTRUMENTO, INSTRUMENTOS, plays } from "@/lib/distribute";
+import { INSTRUMENTO, INSTRUMENTOS, plays, shortfall } from "@/lib/distribute";
 import { monthData } from "@/lib/distribute-data";
 import { dayName, ddmm, MESES, shiftMonth, today } from "@/lib/format";
 import { FUNCOES, serviceType } from "@/lib/roles";
@@ -75,9 +75,36 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
     const open = pool.filter((p) => avail[`${p.id}:${sid}`] === undefined).length;
     return { need, can, open };
   };
-  // só o que falta mesmo se todo mundo responder (cultos com escala pronta ficam de fora)
-  const gaps = services.filter((s) => !ready.has(s.id))
-    .flatMap((s) => roles.map((r) => ({ s, r, ...cell(s.id, r) })).filter((c) => c.need && c.can + c.open < c.need));
+  const label = (r: string) => (r === INSTRUMENTO ? "Instrumento" : r);
+
+  // situação de cada culto: fecha só com quem já disse que pode? fecharia se todos respondessem?
+  const cultos = services.map((s) => {
+    if (ready.has(s.id)) return { s, kind: "pronta" as const, missing: [] };
+    if (!Object.keys(template[s.title] ?? {}).length) return { s, kind: "sem" as const, missing: [] };
+    const now = shortfall(s, people, avail, template, false);
+    const ever = shortfall(s, people, avail, template, true);
+    const missing = Object.entries(now)
+      .sort(([a], [b]) => roles.indexOf(a) - roles.indexOf(b))
+      .map(([r, n]) => ({
+        r, n, hard: ever[r] ?? 0,
+        open: people.filter((p) => plays(p, r) && avail[`${p.id}:${s.id}`] === undefined).map((p) => p.name),
+      }));
+    const kind = !missing.length ? "ok" as const : Object.keys(ever).length ? "bad" as const : "wait" as const;
+    return { s, kind, missing };
+  });
+  const count = (k: string) => cultos.filter((c) => c.kind === k).length;
+  const faltando = cultos.filter((c) => c.kind === "wait" || c.kind === "bad");
+  const porFuncao = roles
+    .map((r) => ({ r, n: faltando.filter((c) => c.missing.some((x) => x.r === r)).length, hard: faltando.filter((c) => c.missing.some((x) => x.r === r && x.hard)).length }))
+    .filter((x) => x.n)
+    .sort((a, b) => b.n - a.n);
+  const reforco = [
+    `🙏 *Escala de ${mes}: precisamos de reforço*`,
+    "",
+    ...faltando.map((c) => `• ${dayName(c.s.date)} ${ddmm(c.s.date)} (${c.s.title}): ${c.missing.map((x) => label(x.r)).join(", ")}`),
+    "",
+    `Se você faz uma dessas funções e pode, marque em louvor-rc.vercel.app → *Disponibilidade* 🙏`,
+  ].join("\n");
 
   return (
     <div className="rel">
@@ -102,12 +129,71 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
       </div>
 
       <section className="sec">
-        <h3>Cobertura por culto <small>pessoas que podem / precisa</small></h3>
-        {gaps.length > 0 ? (
-          <p className="notes" style={{ marginBottom: 10 }}>
-            ⚠ Falta gente mesmo com todos respondendo: {gaps.slice(0, 8).map((g) => `${ddmm(g.s.date)} ${g.r === INSTRUMENTO ? "Instrumento" : g.r}`).join(" · ")}{gaps.length > 8 ? ` e mais ${gaps.length - 8}` : ""}
+        <div className="rel-head">
+          <h3>Cultos do mês <small>já dá para escalar?</small></h3>
+          {faltando.length > 0 && <CopyButton text={reforco} label="Copiar pedido de reforço" done="Mensagem copiada" className="btn" />}
+        </div>
+        <div className="acc-nums rel-kinds">
+          <div className="ok"><b>{count("ok")}</b><span>cobertos: já tem gente para todas as funções</span></div>
+          <div className="wait"><b>{count("wait")}</b><span>dependem de quem ainda não respondeu</span></div>
+          <div className="bad"><b>{count("bad")}</b><span>faltando gente mesmo com todos respondendo</span></div>
+          {count("pronta") > 0 && <div><b>{count("pronta")}</b><span>com escala já montada</span></div>}
+        </div>
+
+        {porFuncao.length > 0 && (
+          <p className="rel-roles">
+            <span className="muted">Funções em falta:</span>
+            {porFuncao.map((x) => (
+              <span key={x.r} className={`chip ${x.hard ? "no" : ""}`} title={x.hard ? `${x.hard} culto(s) sem ninguém possível` : "depende de respostas"}>
+                {label(x.r)} · {x.n} culto{x.n === 1 ? "" : "s"}
+              </span>
+            ))}
           </p>
-        ) : total > 0 && <p className="muted" style={{ marginBottom: 10 }}>Nenhum culto está sem gente possível. Os amarelos ainda dependem de quem não respondeu.</p>}
+        )}
+
+        {faltando.length > 0 ? (
+          <ul className="rel-cultos">
+            {faltando.map(({ s, kind, missing }) => (
+              <li key={s.id} className={kind}>
+                <div className="rel-ct">
+                  <Link href={`/cultos/${s.id}`}><b>{dayName(s.date)} {ddmm(s.date)}</b> {s.title}</Link>
+                  <span className={`chip ${kind === "bad" ? "no" : "miss"}`}>{kind === "bad" ? "falta gente" : "aguardando respostas"}</span>
+                </div>
+                <ul>
+                  {missing.map((x) => (
+                    <li key={x.r}>
+                      <b>{label(x.r)}</b>{x.n > 1 && ` (faltam ${x.n})`}
+                      {x.open.length > 0 && <span className="muted"> · ainda não responderam: {x.open.join(", ")}</span>}
+                      {x.hard > 0 && <span className="rel-hard"> · {x.open.length ? `mesmo se todos puderem, falta${x.hard > 1 ? `m ${x.hard}` : ""}` : "ninguém da equipe pode"}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        ) : total > 0 && (
+          <p className="muted">
+            {count("pronta") === total ? `Todos os cultos de ${mes} já têm escala montada.` : `Nenhum culto de ${mes} está faltando gente. 🙌`}
+          </p>
+        )}
+
+        {count("ok") > 0 && (
+          <p className="rel-oks">
+            <span className="muted">Cobertos:</span>
+            {cultos.filter((c) => c.kind === "ok").map(({ s }) => (
+              <Link key={s.id} className="chip ok" href={`/cultos/${s.id}`}>{dayName(s.date)} {ddmm(s.date)} · {s.title}</Link>
+            ))}
+          </p>
+        )}
+        {count("sem") > 0 && (
+          <p className="muted rel-legend">
+            Sem escala anterior para saber quantas pessoas levam: {cultos.filter((c) => c.kind === "sem").map(({ s }) => `${ddmm(s.date)} ${s.title}`).join(" · ")}
+          </p>
+        )}
+      </section>
+
+      <section className="sec">
+        <h3>Cobertura por função <small>pessoas que podem / precisa</small></h3>
         <div className="grid-wrap">
           <table className="eg rel-cov">
             <thead>

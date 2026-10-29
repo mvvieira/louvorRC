@@ -26,6 +26,34 @@ export const plays = (p: DPerson, role: string) =>
   role === INSTRUMENTO ? p.roles.some((r) => INSTRUMENTOS.includes(r)) : p.roles.includes(role);
 
 /**
+ * Vagas de um culto que não fecham com quem pode (e, com `useNoAnswer`, também quem não respondeu),
+ * por função. Cada pessoa ocupa uma só vaga no culto, então quem faz duas funções conta uma vez.
+ */
+export function shortfall(s: DService, people: DPerson[], avail: Avail, template: Template, useNoAnswer: boolean): Record<string, number> {
+  const ok = (p: DPerson) => {
+    const a = avail[`${p.id}:${s.id}`];
+    return a === 1 || (a === undefined && useNoAnswer);
+  };
+  const slots = Object.entries(template[s.title] ?? {}).flatMap(([role, n]) => Array<string>(n).fill(role));
+  const cands = slots.map((role) => people.filter((p) => plays(p, role) && ok(p)).map((p) => p.id));
+  // emparelhamento máximo vaga ↔ pessoa (caminhos aumentantes), funções mais difíceis primeiro
+  const owner = new Map<number, number>();
+  const seat = (i: number, seen: Set<number>): boolean => {
+    for (const m of cands[i]) {
+      if (seen.has(m)) continue;
+      seen.add(m);
+      const j = owner.get(m);
+      if (j === undefined || seat(j, seen)) { owner.set(m, i); return true; }
+    }
+    return false;
+  };
+  const out: Record<string, number> = {};
+  for (const i of slots.map((_, i) => i).sort((a, b) => cands[a].length - cands[b].length))
+    if (!seat(i, new Set())) out[slots[i]] = (out[slots[i]] ?? 0) + 1;
+  return out;
+}
+
+/**
  * Modelo de cada culto: fixo para Domingo, Quinta e Intercessão; para os demais,
  * a quantidade mais comum de cada função nas últimas escalas com o mesmo nome (ou do mesmo tipo).
  */
