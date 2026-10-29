@@ -93,10 +93,7 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
     const ever = shortfall(s, people, avail, template, true);
     const missing = Object.entries(now)
       .sort(([a], [b]) => roles.indexOf(a) - roles.indexOf(b))
-      .map(([r, n]) => ({
-        r, n, hard: ever[r] ?? 0,
-        open: people.filter((p) => plays(p, r) && avail[`${p.id}:${s.id}`] === undefined).map((p) => p.name),
-      }));
+      .map(([r, n]) => ({ r, n, hard: ever[r] ?? 0 }));
     const kind = !missing.length ? "ok" as const : Object.keys(ever).length ? "bad" as const : "wait" as const;
     return { s, kind, missing };
   });
@@ -106,21 +103,21 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
     .map((r) => ({ r, n: faltando.filter((c) => c.missing.some((x) => x.r === r)).length, hard: faltando.filter((c) => c.missing.some((x) => x.r === r && x.hard)).length }))
     .filter((x) => x.n)
     .sort((a, b) => b.n - a.n);
-  const pedido = (s: { date: string; title: string }, missing: { r: string; n: number }[], open: string[]) => [
-    `🙏 *Pedido de reforço: ${dayName(s.date)} ${ddmm(s.date)} (${s.title})*`,
+  // pedidos de reforço para o grupo: só as funções, sem citar nomes (servir é voluntário)
+  const pedido = (s: { date: string; title: string }, missing: { r: string; n: number }[]) => [
+    `💙 *Reforço para ${dayName(s.date)} ${ddmm(s.date)} (${s.title})*`,
     "",
-    `Precisamos de: ${missing.map((x) => `${label(x.r)}${x.n > 1 ? ` (${x.n})` : ""}`).join(", ")}`,
-    ...(open.length ? [`Ainda não marcaram esse culto: ${open.join(", ")}`] : []),
+    `Ainda estamos precisando de: ${missing.map((x) => `${label(x.r)}${x.n > 1 ? ` (${x.n})` : ""}`).join(", ")}`,
     "",
-    `Se você pode servir nesse culto, marque em louvor-rc.vercel.app → *Disponibilidade* 🙏`,
+    `Se você serve numa dessas funções e pode estar com a gente nesse culto, marque em louvor-rc.vercel.app → *Disponibilidade*. Obrigado! 🙏`,
   ].join("\n");
-  const falta = new Map(faltando.map(({ s, missing }) => [s.id, pedido(s, missing, [...new Set(missing.flatMap((x) => x.open))])]));
+  const falta = new Map(faltando.map(({ s, missing }) => [s.id, pedido(s, missing)]));
   const reforco = [
-    `🙏 *Escala de ${mes}: precisamos de reforço*`,
+    `💙 *Escala de ${mes}: ainda precisamos de reforço*`,
     "",
     ...faltando.map((c) => `• ${dayName(c.s.date)} ${ddmm(c.s.date)} (${c.s.title}): ${c.missing.map((x) => label(x.r)).join(", ")}`),
     "",
-    `Se você faz uma dessas funções e pode, marque em louvor-rc.vercel.app → *Disponibilidade* 🙏`,
+    `Se você serve numa dessas funções e pode estar com a gente, marque em louvor-rc.vercel.app → *Disponibilidade*. Obrigado! 🙏`,
   ].join("\n");
 
   return (
