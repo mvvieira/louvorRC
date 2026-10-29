@@ -17,13 +17,14 @@ export default function Distributor({ month, services: all, targets, people, exi
   const [seed, setSeed] = useState(1);
   // enquanto menos da metade respondeu, completa com quem não respondeu (marcado com ?)
   const [useNoAnswer, setUseNoAnswer] = useState(answered < people.length / 2);
+  const [favorScarce, setFavorScarce] = useState(true);
   const [template, setTemplate] = useState(learned);
   const [skip, setSkip] = useState<Set<number>>(new Set());
   const [pending, start] = useTransition();
 
   const { picks, gaps, load } = useMemo(
-    () => distribute({ services: all, targets: targets.filter((id) => !skip.has(id)), people, existing, avail, template, seed, useNoAnswer }),
-    [all, targets, skip, people, existing, avail, template, seed, useNoAnswer],
+    () => distribute({ services: all, targets: targets.filter((id) => !skip.has(id)), people, existing, avail, template, seed, useNoAnswer, favorScarce }),
+    [all, targets, skip, people, existing, avail, template, seed, useNoAnswer, favorScarce],
   );
   const name = new Map(people.map((p) => [p.id, p.name]));
   const maybe = picks.filter((p) => p.maybe).length;
@@ -42,6 +43,7 @@ export default function Distributor({ month, services: all, targets, people, exi
       <p className="edit-hint">
         A proposta usa quem marcou <b className="ok-t">posso</b> na Disponibilidade, divide as escalas por igual
         (quem tem menos escalas no mês vem primeiro) e evita a mesma pessoa duas vezes no mesmo dia.
+        No empate, vem primeiro quem pode em poucos cultos, para todo mundo ter a chance de servir.
         Cultos que já têm escala lançada <b>não são alterados</b>. Nada é gravado até você clicar em lançar.
       </p>
 
@@ -50,6 +52,10 @@ export default function Distributor({ month, services: all, targets, people, exi
         <label className="dist-opt">
           <input type="checkbox" checked={useNoAnswer} onChange={(e) => setUseNoAnswer(e.target.checked)} />
           Usar também quem ainda não respondeu <span className="chip miss">?</span>
+        </label>
+        <label className="dist-opt" title="Quem marcou 'posso' em poucos cultos passa na frente de quem pode em quase todos">
+          <input type="checkbox" checked={favorScarce} onChange={(e) => setFavorScarce(e.target.checked)} />
+          Priorizar quem tem pouca disponibilidade
         </label>
         <button type="button" className="btn" onClick={() => setSeed((s) => s + 1)}>↻ Sortear de novo</button>
       </div>

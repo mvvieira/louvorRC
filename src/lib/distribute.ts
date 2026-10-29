@@ -97,10 +97,12 @@ const dayDiff = (a: string, b: string) => Math.abs(Date.parse(a) - Date.parse(b)
  * começado tem só as vagas que faltam completadas, sem trocar quem já está.
  * Nunca usa quem marcou "não posso"; quem não respondeu só entra com `useNoAnswer` e fica marcado.
  * Escolhe quem tem menos escalas no mês, evitando o mesmo dia e dias seguidos.
+ * Com `favorScarce`, no empate de escalas vem primeiro quem marcou "posso" em poucos cultos,
+ * para quem tem pouca disponibilidade também conseguir servir (quem pode sempre cobre o resto).
  */
-export function distribute({ services, people, existing, avail, template, seed, useNoAnswer, targets, complete }: {
+export function distribute({ services, people, existing, avail, template, seed, useNoAnswer, targets, complete, favorScarce = true }: {
   services: DService[]; people: DPerson[]; existing: DSlot[]; avail: Avail;
-  template: Template; seed: number; useNoAnswer: boolean; targets?: number[]; complete?: boolean;
+  template: Template; seed: number; useNoAnswer: boolean; targets?: number[]; complete?: boolean; favorScarce?: boolean;
 }): { picks: DPick[]; gaps: Gap[]; load: Map<number, number> } {
   const load = new Map<number, number>();
   const dates = new Map<number, string[]>();
@@ -110,6 +112,8 @@ export function distribute({ services, people, existing, avail, template, seed, 
     dates.set(m, [...(dates.get(m) ?? []), d]);
   };
   for (const e of existing) { const d = date.get(e.service_id); if (d) serve(e.member_id, d); }
+  // em quantos cultos do mês cada um marcou "posso" (sem nenhum "posso" conta como muito disponível)
+  const free = new Map(people.map((p) => [p.id, services.filter((s) => avail[`${p.id}:${s.id}`] === 1).length || 99]));
 
   const picks: DPick[] = [];
   const gaps: Gap[] = [];
@@ -144,6 +148,8 @@ export function distribute({ services, people, existing, avail, template, seed, 
             + (load.get(p.id) ?? 0) * 10
             + (ds.includes(s.date) ? 40 : 0)
             + (ds.some((d) => d !== s.date && dayDiff(d, s.date) <= 2) ? 6 : 0)
+            // pouca disponibilidade passa na frente, mas nunca vale mais que uma escala a menos (10)
+            + (favorScarce ? Math.min(free.get(p.id)!, 7) * 1.4 : 0)
             + rnd(seed, p.id, s.id) * 4;
         };
         const best = cands.reduce((a, b) => (cost(b) < cost(a) ? b : a));
