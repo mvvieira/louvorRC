@@ -552,3 +552,5 @@ main.wrap:has(.rel-wide) { max-width: none; }
 .dist-roles th { width: 120px; white-space: nowrap; font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--ink); }
 .dist-roles td { display: flex; flex-wrap: wrap; gap: 6px; }
 .dist-roles .chip.zero { opacity: .55; border-style: dashed; }
+.chip.noans { border-color: var(--warn); color: var(--warn); border-style: dashed; }
+.dist-note { font-size: 13px; display: flex; align-items: center; gap: 6px; }

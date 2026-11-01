@@ -32,10 +32,19 @@ export default function Distributor({ month, services: all, targets, people, exi
   const ready = new Set(existing.map((e) => e.service_id).filter((id) => targets.includes(id)));
   const titles = [...new Set(services.filter((s) => !ready.has(s.id)).map((s) => s.title))];
   const roleName = (r: string) => (r === INSTRUMENTO ? `Instrumento (${INSTRUMENTOS.join(", ").toLowerCase()})` : r);
-  const ranking = people.filter((p) => load.get(p.id)).sort((a, b) => (load.get(b.id) ?? 0) - (load.get(a.id) ?? 0) || a.name.localeCompare(b.name));
+  // quem não preencheu a disponibilidade do mês fica sinalizado e conta só o que a distribuição deu (0, a não ser
+  // com "usar quem não respondeu"); as escalas lançadas antes aparecem só na dica
+  const noAnswer = new Set(people.filter((p) => !all.some((s) => avail[`${p.id}:${s.id}`] !== undefined)).map((p) => p.id));
+  const count = (id: number) => (noAnswer.has(id) ? picks.filter((p) => p.member_id === id).length : load.get(id) ?? 0);
+  const before = (id: number, role?: string) => existing.filter((e) => e.member_id === id && (!role || e.role === role)).length;
+  const chip = (id: number, n: number, role?: string) => noAnswer.has(id)
+    ? <span key={id} className="chip noans" title={`Não preencheu a disponibilidade: fica com ${n} na distribuição${before(id, role) ? ` (${before(id, role)} escala${before(id, role) === 1 ? "" : "s"} lançada${before(id, role) === 1 ? "" : "s"} antes)` : ""}`}>⚠ {name.get(id) ?? "?"} <b>{n}</b></span>
+    : <span key={id} className="chip">{name.get(id) ?? "?"} <b>{n}</b></span>;
+  const ranking = people.filter((p) => load.get(p.id))
+    .sort((a, b) => count(b.id) - count(a.id) || Number(noAnswer.has(a.id)) - Number(noAnswer.has(b.id)) || a.name.localeCompare(b.name));
   // escalas do mês por função (as já lançadas + a proposta); quem faz a função e pode, mas ficou com 0, aparece apagado
   const byRole = new Map<string, Map<number, number>>();
-  for (const e of [...existing, ...picks]) {
+  for (const e of [...existing.filter((e) => !noAnswer.has(e.member_id)), ...picks]) {
     const m = byRole.get(e.role) ?? new Map<number, number>();
     m.set(e.member_id, (m.get(e.member_id) ?? 0) + 1);
     byRole.set(e.role, m);
@@ -47,6 +56,8 @@ export default function Distributor({ month, services: all, targets, people, exi
       const m = byRole.get(role) ?? new Map<number, number>();
       const zero = people.filter((p) => p.roles.includes(role) && !m.has(p.id)
         && services.some((s) => !skip.has(s.id) && avail[`${p.id}:${s.id}`] === 1 && Object.entries(template[s.title] ?? {}).some(([slot, n]) => n > 0 && covers(slot, role))));
+      // quem não preencheu e tinha escala lançada nessa função aparece com 0
+      for (const e of existing) if (e.role === role && noAnswer.has(e.member_id) && !m.has(e.member_id)) m.set(e.member_id, 0);
       return { role, total: [...m.values()].reduce((a, b) => a + b, 0), list: [...m].sort((a, b) => b[1] - a[1] || name.get(a[0])!.localeCompare(name.get(b[0])!)), zero };
     })
     .filter((r) => r.total || r.zero.length);
@@ -147,7 +158,10 @@ export default function Distributor({ month, services: all, targets, people, exi
 
       <div className="dist-load">
         <h3>Escalas por pessoa no mês</h3>
-        <p>{ranking.map((p) => <span key={p.id} className="chip">{p.name} <b>{load.get(p.id)}</b></span>)}</p>
+        <p>{ranking.map((p) => chip(p.id, count(p.id)))}</p>
+        {noAnswer.size > 0 && ranking.some((p) => noAnswer.has(p.id)) && (
+          <p className="muted dist-note"><span className="chip noans">⚠</span> não preencheu a disponibilidade do mês: fica com 0 na distribuição</p>
+        )}
         <h3>Por função</h3>
         <div className="acc-table dist-roles">
           <table>
@@ -156,7 +170,7 @@ export default function Distributor({ month, services: all, targets, people, exi
                 <tr key={role}>
                   <th scope="row">{role}<br /><span className="muted">{total} escala{total === 1 ? "" : "s"}</span></th>
                   <td>
-                    {list.map(([id, n]) => <span key={id} className="chip">{name.get(id) ?? "?"} <b>{n}</b></span>)}
+                    {list.map(([id, n]) => chip(id, n, role))}
                     {zero.map((p) => <span key={p.id} className="chip zero" title="Faz a função e marcou que pode, mas ficou sem escala nela">{p.name} <b>0</b></span>)}
                   </td>
                 </tr>
