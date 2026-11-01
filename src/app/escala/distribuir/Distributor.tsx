@@ -33,6 +33,23 @@ export default function Distributor({ month, services: all, targets, people, exi
   const titles = [...new Set(services.filter((s) => !ready.has(s.id)).map((s) => s.title))];
   const roleName = (r: string) => (r === INSTRUMENTO ? `Instrumento (${INSTRUMENTOS.join(", ").toLowerCase()})` : r);
   const ranking = people.filter((p) => load.get(p.id)).sort((a, b) => (load.get(b.id) ?? 0) - (load.get(a.id) ?? 0) || a.name.localeCompare(b.name));
+  // escalas do mês por função (as já lançadas + a proposta); quem faz a função e pode, mas ficou com 0, aparece apagado
+  const byRole = new Map<string, Map<number, number>>();
+  for (const e of [...existing, ...picks]) {
+    const m = byRole.get(e.role) ?? new Map<number, number>();
+    m.set(e.member_id, (m.get(e.member_id) ?? 0) + 1);
+    byRole.set(e.role, m);
+  }
+  const roleRows = [...new Set([...byRole.keys(), ...Object.values(template).flatMap((t) => Object.keys(t))])]
+    .filter((r) => r !== INSTRUMENTO)
+    .sort(byFuncao)
+    .map((role) => {
+      const m = byRole.get(role) ?? new Map<number, number>();
+      const zero = people.filter((p) => p.roles.includes(role) && !m.has(p.id)
+        && services.some((s) => !skip.has(s.id) && avail[`${p.id}:${s.id}`] === 1 && (template[s.title]?.[role] || (INSTRUMENTOS.includes(role) && template[s.title]?.[INSTRUMENTO]))));
+      return { role, total: [...m.values()].reduce((a, b) => a + b, 0), list: [...m].sort((a, b) => b[1] - a[1] || name.get(a[0])!.localeCompare(name.get(b[0])!)), zero };
+    })
+    .filter((r) => r.total || r.zero.length);
   const idle = people.filter((p) => !load.get(p.id) && services.some((s) => avail[`${p.id}:${s.id}`] === 1));
 
   const bump = (title: string, role: string, d: number) =>
@@ -131,6 +148,22 @@ export default function Distributor({ month, services: all, targets, people, exi
       <div className="dist-load">
         <h3>Escalas por pessoa no mês</h3>
         <p>{ranking.map((p) => <span key={p.id} className="chip">{p.name} <b>{load.get(p.id)}</b></span>)}</p>
+        <h3>Por função</h3>
+        <div className="acc-table dist-roles">
+          <table>
+            <tbody>
+              {roleRows.map(({ role, total, list, zero }) => (
+                <tr key={role}>
+                  <th scope="row">{role}<br /><span className="muted">{total} escala{total === 1 ? "" : "s"}</span></th>
+                  <td>
+                    {list.map(([id, n]) => <span key={id} className="chip">{name.get(id) ?? "?"} <b>{n}</b></span>)}
+                    {zero.map((p) => <span key={p.id} className="chip zero" title="Faz a função e marcou que pode, mas ficou sem escala nela">{p.name} <b>0</b></span>)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {idle.length > 0 && <p className="muted">Disponíveis que ficaram sem escala: {idle.map((p) => p.name).join(", ")}</p>}
       </div>
 

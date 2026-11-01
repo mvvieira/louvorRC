@@ -548,3 +548,7 @@ main.wrap:has(.rel-wide) { max-width: none; }
 .rel-ask + .toast { position: absolute; left: 50%; bottom: -26px; transform: translateX(-50%); z-index: 4; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 1px 8px; font-size: 12px; pointer-events: none; }
 .rel-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 #pessoas { scroll-margin-top: 90px; }
+.dist-load h3 { margin-top: 14px; }
+.dist-roles th { width: 120px; white-space: nowrap; font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--ink); }
+.dist-roles td { display: flex; flex-wrap: wrap; gap: 6px; }
+.dist-roles .chip.zero { opacity: .55; border-style: dashed; }
