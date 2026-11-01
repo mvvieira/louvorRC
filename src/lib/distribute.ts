@@ -112,12 +112,15 @@ export function distribute({ services, people, existing, avail, template, seed, 
     dates.set(m, [...(dates.get(m) ?? []), d]);
   };
   for (const e of existing) { const d = date.get(e.service_id); if (d) serve(e.member_id, d); }
-  // em quantos cultos do mês cada um marcou "posso" (sem nenhum "posso" conta como muito disponível)
-  const free = new Map(people.map((p) => [p.id, services.filter((s) => avail[`${p.id}:${s.id}`] === 1).length || 99]));
 
   const picks: DPick[] = [];
   const gaps: Gap[] = [];
   const ready = new Set(existing.map((e) => e.service_id));
+  // chances reais de cada um: cultos ainda a preencher em que marcou "posso" e que levam uma função dele
+  // (sem nenhuma chance conta como muito disponível)
+  const open = services.filter((s) => (!targets || targets.includes(s.id)) && (!ready.has(s.id) || complete));
+  const free = new Map(people.map((p) => [p.id,
+    open.filter((s) => avail[`${p.id}:${s.id}`] === 1 && Object.keys(template[s.title] ?? {}).some((r) => plays(p, r))).length || 99]));
   for (const s of [...services].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)) {
     if (targets && !targets.includes(s.id)) continue;
     if (ready.has(s.id) && !complete) continue;
