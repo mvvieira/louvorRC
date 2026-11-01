@@ -1,11 +1,11 @@
 "use client";
 import { useMemo, useState, useTransition } from "react";
-import { distribute, INSTRUMENTO, INSTRUMENTOS, type Avail, type DPerson, type DService, type DSlot, type Template } from "@/lib/distribute";
+import { covers, distribute, INSTRUMENTO, INSTRUMENTOS, MINISTRA, MINISTRO_H, VAGAS, type Avail, type DPerson, type DService, type DSlot, type Template } from "@/lib/distribute";
 import { dayName, ddmm } from "@/lib/format";
-import { FUNCOES, serviceType } from "@/lib/roles";
+import { serviceType } from "@/lib/roles";
 import { applyDistribution } from "../../actions";
 
-const byFuncao = (a: string, b: string) => (FUNCOES.indexOf(a) + 1 || 99) - (FUNCOES.indexOf(b) + 1 || 99);
+const byFuncao = (a: string, b: string) => (VAGAS.indexOf(a) + 1 || 99) - (VAGAS.indexOf(b) + 1 || 99);
 
 /** Proposta de escala do mês: revisa, sorteia de novo, ajusta o modelo e só então lança. */
 export default function Distributor({ month, services: all, targets, people, existing, avail, template: learned, answered }: {
@@ -41,12 +41,12 @@ export default function Distributor({ month, services: all, targets, people, exi
     byRole.set(e.role, m);
   }
   const roleRows = [...new Set([...byRole.keys(), ...Object.values(template).flatMap((t) => Object.keys(t))])]
-    .filter((r) => r !== INSTRUMENTO)
+    .filter((r) => ![INSTRUMENTO, MINISTRO_H, MINISTRA].includes(r))
     .sort(byFuncao)
     .map((role) => {
       const m = byRole.get(role) ?? new Map<number, number>();
       const zero = people.filter((p) => p.roles.includes(role) && !m.has(p.id)
-        && services.some((s) => !skip.has(s.id) && avail[`${p.id}:${s.id}`] === 1 && (template[s.title]?.[role] || (INSTRUMENTOS.includes(role) && template[s.title]?.[INSTRUMENTO]))));
+        && services.some((s) => !skip.has(s.id) && avail[`${p.id}:${s.id}`] === 1 && Object.entries(template[s.title] ?? {}).some(([slot, n]) => n > 0 && covers(slot, role))));
       return { role, total: [...m.values()].reduce((a, b) => a + b, 0), list: [...m].sort((a, b) => b[1] - a[1] || name.get(a[0])!.localeCompare(name.get(b[0])!)), zero };
     })
     .filter((r) => r.total || r.zero.length);
@@ -78,12 +78,12 @@ export default function Distributor({ month, services: all, targets, people, exi
       </div>
 
       <details className="dist-model">
-        <summary>Quantas pessoas cada culto leva <span className="muted">(Domingo e Quinta: banda completa · Intercessão: ministro + 1 instrumento; ajuste se precisar)</span></summary>
+        <summary>Quantas pessoas cada culto leva <span className="muted">(Domingo e Quinta: banda completa, com um ministro e uma ministra · Intercessão: ministro + 1 instrumento; ajuste se precisar)</span></summary>
         {titles.map((title) => (
           <div key={title} className="dist-tpl">
             <b>{title}</b>
             <span className="dist-steps">
-              {[...FUNCOES, INSTRUMENTO].map((role) => {
+              {VAGAS.map((role) => {
                 const n = template[title]?.[role] ?? 0;
                 return (
                   <span key={role} className={`dist-step${n ? "" : " zero"}`}>

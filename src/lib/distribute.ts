@@ -17,13 +17,35 @@ export type Gap = { service_id: number; role: string; missing: number };
 export const INSTRUMENTO = "Instrumento";
 export const INSTRUMENTOS = ["Teclado", "Violão", "Guitarra"];
 
-/** Domingo e Quinta: banda completa. */
-const BANDA = { Ministro: 2, Soprano: 1, Contralto: 1, Tenor: 1, Teclado: 1, Guitarra: 1, Violão: 1, Baixo: 1, Bateria: 1 };
+/** Vagas de ministro por voz: nas vozes do Domingo e da Quinta vão um ministro e uma ministra. */
+export const MINISTRO_H = "Ministro (homem)";
+export const MINISTRA = "Ministra (mulher)";
+const POR_VOZ: Record<string, "h" | "m"> = { [MINISTRO_H]: "h", [MINISTRA]: "m" };
+
+/** Todas as vagas que um modelo pode ter, na ordem de exibição. */
+export const VAGAS = [MINISTRO_H, MINISTRA, ...FUNCOES, INSTRUMENTO];
+
+/** Domingo e Quinta: banda completa; vozes = 3 mulheres (ministra, soprano, contralto) e 2 homens (ministro, tenor). */
+const BANDA = { [MINISTRO_H]: 1, [MINISTRA]: 1, Soprano: 1, Contralto: 1, Tenor: 1, Teclado: 1, Guitarra: 1, Violão: 1, Baixo: 1, Bateria: 1 };
 const FIXOS: Record<string, Record<string, number>> = { dom: BANDA, qui: BANDA, int: { Ministro: 1, [INSTRUMENTO]: 1 } };
 
-/** A pessoa faz a função (a vaga "Instrumento" aceita qualquer um dos INSTRUMENTOS). */
-export const plays = (p: DPerson, role: string) =>
-  role === INSTRUMENTO ? p.roles.some((r) => INSTRUMENTOS.includes(r)) : p.roles.includes(role);
+/** Homem ou mulher pelo naipe: Tenor = homem; Soprano/Contralto = mulher (sem naipe: não se sabe). */
+export const voz = (roles: string[]): "h" | "m" | "" =>
+  roles.includes("Tenor") ? "h" : roles.some((r) => r === "Soprano" || r === "Contralto") ? "m" : "";
+
+/** Função gravada na escala para uma vaga do modelo ("Ministra (mulher)" → "Ministro"). */
+const base = (role: string) => (POR_VOZ[role] ? "Ministro" : role);
+
+/** A vaga do modelo é preenchida por quem está gravado com esta função na escala. */
+export const covers = (slot: string, role: string) =>
+  slot === role || base(slot) === role || (slot === INSTRUMENTO && INSTRUMENTOS.includes(role));
+
+/** A pessoa faz a função (a vaga "Instrumento" aceita qualquer um dos INSTRUMENTOS; ministro/ministra olha a voz). */
+export const plays = (p: DPerson, role: string) => {
+  if (role === INSTRUMENTO) return p.roles.some((r) => INSTRUMENTOS.includes(r));
+  if (POR_VOZ[role]) { const v = voz(p.roles); return p.roles.includes("Ministro") && (!v || v === POR_VOZ[role]); }
+  return p.roles.includes(role);
+};
 
 /**
  * Vagas de um culto que não fecham com quem pode (e, com `useNoAnswer`, também quem não respondeu),
@@ -130,8 +152,16 @@ export function distribute({ services, people, existing, avail, template, seed, 
       const a = avail[`${p.id}:${s.id}`];
       return a === 1 || (a === undefined && useNoAnswer);
     };
-    const need = Object.entries(template[s.title] ?? {})
-      .map(([role, n]) => ({ role, n: n - here.filter((e) => (role === INSTRUMENTO ? INSTRUMENTOS.includes(e.role) : e.role === role)).length }))
+    const tpl = template[s.title] ?? {};
+    const who = new Map(people.map((p) => [p.id, p]));
+    const ministros = here.filter((e) => e.role === "Ministro").length;
+    const vagasMin = Object.entries(tpl).filter(([r]) => POR_VOZ[r]).reduce((a, [, n]) => a + n, 0);
+    const need = Object.entries(tpl)
+      .map(([role, n]) => {
+        const has = here.filter((e) => covers(role, e.role) && (!POR_VOZ[role] || plays(who.get(e.member_id) ?? { id: 0, name: "", roles: [] }, role))).length;
+        // ministro/ministra: nunca passa do total de ministros do modelo, mesmo se os já escalados forem da mesma voz
+        return { role, n: POR_VOZ[role] ? Math.min(n - has, vagasMin - ministros) : n - has };
+      })
       .filter((x) => x.n > 0)
       // função com menos gente disponível escolhe primeiro
       .map((x) => ({ ...x, pool: people.filter((p) => plays(p, x.role) && ok(p)).length }))
@@ -158,7 +188,7 @@ export function distribute({ services, people, existing, avail, template, seed, 
         const best = cands.reduce((a, b) => (cost(b) < cost(a) ? b : a));
         busy.add(best.id);
         serve(best.id, s.date);
-        const as = role === INSTRUMENTO ? INSTRUMENTOS.find((r) => best.roles.includes(r))! : role;
+        const as = role === INSTRUMENTO ? INSTRUMENTOS.find((r) => best.roles.includes(r))! : base(role);
         picks.push({ service_id: s.id, member_id: best.id, role: as, maybe: avail[`${best.id}:${s.id}`] !== 1 });
       }
     }

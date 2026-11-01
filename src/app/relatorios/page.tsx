@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { pageUser, seesAccessLog } from "@/lib/auth";
 import { all } from "@/lib/db";
-import { INSTRUMENTO, INSTRUMENTOS, plays, shortfall } from "@/lib/distribute";
+import { INSTRUMENTO, INSTRUMENTOS, plays, shortfall, VAGAS } from "@/lib/distribute";
 import { monthData } from "@/lib/distribute-data";
 import { dayName, ddmm, MESES, shiftMonth, today } from "@/lib/format";
 import { FUNCOES, serviceType } from "@/lib/roles";
@@ -75,7 +75,7 @@ export default async function Relatorios({ searchParams }: { searchParams: Promi
   ].join("\n");
 
   // cobertura: quantas pessoas da função podem em cada culto, comparado ao que o culto precisa
-  const roles = [...FUNCOES, INSTRUMENTO].filter((r) => services.some((s) => (template[s.title]?.[r] ?? 0) > 0));
+  const roles = VAGAS.filter((r) => services.some((s) => (template[s.title]?.[r] ?? 0) > 0));
   const cell = (sid: number, r: string) => {
     const need = template[services.find((s) => s.id === sid)!.title]?.[r] ?? 0;
     const pool = people.filter((p) => plays(p, r));
