@@ -121,10 +121,11 @@ const dayDiff = (a: string, b: string) => Math.abs(Date.parse(a) - Date.parse(b)
  * Escolhe quem tem menos escalas no mês, evitando o mesmo dia e dias seguidos.
  * Com `favorScarce`, no empate de escalas vem primeiro quem marcou "posso" em poucos cultos,
  * para quem tem pouca disponibilidade também conseguir servir (quem pode sempre cobre o resto).
+ * Com `balance`, no fim reequilibra: passa vagas de quem ficou com mais escalas para quem tem bem menos.
  */
-export function distribute({ services, people, existing, avail, template, seed, useNoAnswer, targets, complete, favorScarce = true }: {
+export function distribute({ services, people, existing, avail, template, seed, useNoAnswer, targets, complete, favorScarce = true, balance = true }: {
   services: DService[]; people: DPerson[]; existing: DSlot[]; avail: Avail;
-  template: Template; seed: number; useNoAnswer: boolean; targets?: number[]; complete?: boolean; favorScarce?: boolean;
+  template: Template; seed: number; useNoAnswer: boolean; targets?: number[]; complete?: boolean; favorScarce?: boolean; balance?: boolean;
 }): { picks: DPick[]; gaps: Gap[]; load: Map<number, number> } {
   const load = new Map<number, number>();
   const dates = new Map<number, string[]>();
@@ -136,6 +137,7 @@ export function distribute({ services, people, existing, avail, template, seed, 
   for (const e of existing) { const d = date.get(e.service_id); if (d) serve(e.member_id, d); }
 
   const picks: DPick[] = [];
+  const slots: string[] = []; // vaga do modelo de cada pick (ex.: "Ministra (mulher)", "Instrumento")
   const gaps: Gap[] = [];
   const ready = new Set(existing.map((e) => e.service_id));
   // chances reais de cada um: cultos ainda a preencher em que marcou "posso" e que levam uma função dele
@@ -190,8 +192,66 @@ export function distribute({ services, people, existing, avail, template, seed, 
         serve(best.id, s.date);
         const as = role === INSTRUMENTO ? INSTRUMENTOS.find((r) => best.roles.includes(r))! : base(role);
         picks.push({ service_id: s.id, member_id: best.id, role: as, maybe: avail[`${best.id}:${s.id}`] !== 1 });
+        slots.push(role);
       }
     }
   }
+  if (balance) rebalance();
   return { picks, gaps, load };
+
+  /**
+   * Reequilíbrio: a escolha culto a culto não volta atrás, então no fim tenta tirar vagas de quem ficou com mais
+   * escalas e passar para quem tem pelo menos 2 a menos (direto, ou trocando com alguém do mesmo culto).
+   * Só mexe na proposta (nunca no que já estava lançado), respeita a disponibilidade e não põe ninguém duas vezes no mesmo dia.
+   */
+  function rebalance() {
+    const people_ = new Map(people.map((p) => [p.id, p]));
+    const confirmed = (m: number, sid: number) => avail[`${m}:${sid}`] === 1;
+    const inCulto = (sid: number) => new Set([...existing, ...picks].filter((e) => e.service_id === sid).map((e) => e.member_id));
+    const unserve = (m: number, d: string) => {
+      load.set(m, (load.get(m) ?? 1) - 1);
+      const ds = dates.get(m) ?? [];
+      ds.splice(ds.indexOf(d), 1);
+    };
+    // quem pode assumir a vaga `slot` no culto `sid` aliviando alguém com `top` escalas
+    const takers = (slot: string, sid: number, top: number, wasConfirmed: boolean) => {
+      const d = date.get(sid)!;
+      const here = inCulto(sid);
+      return people
+        .filter((p) => plays(p, slot) && !here.has(p.id) && !(dates.get(p.id) ?? []).includes(d)
+          && (confirmed(p.id, sid) || (!wasConfirmed && useNoAnswer && avail[`${p.id}:${sid}`] === undefined))
+          && (load.get(p.id) ?? 0) <= top - 2)
+        .sort((a, b) => (load.get(a.id) ?? 0) - (load.get(b.id) ?? 0) || rnd(seed, a.id, sid) - rnd(seed, b.id, sid));
+    };
+    const put = (i: number, p: DPerson) => {
+      const sid = picks[i].service_id, d = date.get(sid)!;
+      unserve(picks[i].member_id, d);
+      serve(p.id, d);
+      const slot = slots[i];
+      picks[i] = { service_id: sid, member_id: p.id, role: slot === INSTRUMENTO ? INSTRUMENTOS.find((r) => p.roles.includes(r))! : base(slot), maybe: !confirmed(p.id, sid) };
+    };
+    for (let guard = 0, moved = true; moved && guard < 500; guard++) {
+      moved = false;
+      const order = picks.map((_, i) => i).sort((a, b) => (load.get(picks[b].member_id) ?? 0) - (load.get(picks[a].member_id) ?? 0));
+      for (const i of order) {
+        const x = picks[i].member_id, sid = picks[i].service_id, top = load.get(x) ?? 0;
+        if (top < 3) break;
+        // 1) direto: outra pessoa assume a vaga
+        const direct = takers(slots[i], sid, top, !picks[i].maybe)[0];
+        if (direct) { put(i, direct); moved = true; break; }
+        // 2) troca no mesmo culto: alguém já escalado assume esta vaga e uma pessoa nova cobre a dele
+        for (const j of picks.map((_, j) => j).filter((j) => j !== i && picks[j].service_id === sid)) {
+          const y = people_.get(picks[j].member_id)!;
+          if (!plays(y, slots[i]) || (!confirmed(y.id, sid) && !picks[i].maybe)) continue;
+          const z = takers(slots[j], sid, top, !picks[j].maybe)[0];
+          if (!z) continue;
+          put(j, z);
+          put(i, y);
+          moved = true;
+          break;
+        }
+        if (moved) break;
+      }
+    }
+  }
 }
