@@ -34,15 +34,15 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
       {!status.official && <span className="draft-flag" title={`Ainda não é a escala oficial: aguardando a aprovação de ${who}`}>Rascunho</span>}
     </div>
   );
-  // equipe vê os cultos do mês, mas os nomes só depois que a escala é aprovada
+  // equipe vê os cultos do mês; em rascunho, os nomes só dos cultos que já aconteceram (até ontem)
   const hidden = !edit && !lider && !status.official;
 
   const cs = await all<Service>("SELECT * FROM services WHERE date LIKE ? ORDER BY date, id", [`${month}-%`]);
-  const slots = hidden ? [] : await all<Slot>(
+  const slots = await all<Slot>(
     `SELECT sm.id, sm.service_id, sm.member_id, sm.role, mb.name FROM service_members sm
      JOIN members mb ON mb.id=sm.member_id JOIN services s ON s.id=sm.service_id
-     WHERE s.date LIKE ? ORDER BY sm.id`,
-    [`${month}-%`],
+     WHERE s.date LIKE ? AND (? = 0 OR s.date < ?) ORDER BY sm.id`,
+    [`${month}-%`, hidden ? 1 : 0, t],
   );
   const people = edit ? await all<Member>("SELECT id, name, roles FROM members WHERE active=1 ORDER BY name") : [];
   const slotPeople: SlotPerson[] = people.map((p) => ({ id: Number(p.id), name: p.name, roles: splitRoles(p.roles) }));
@@ -60,7 +60,7 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
   const yourCs = cs.filter((c) => yours(c).length);
   const col = (c: Service) => (yours(c).length ? " mine" : "");
   // na Escala (só leitura), cada culto de mês ainda não aprovado leva o selo de rascunho
-  const draft = !edit && !status.official;
+  const draft = (c: Service) => !edit && !status.official && c.date >= t;
 
   const L = [`📅 *ESCALA RC LOUVOR – ${mesNome.toUpperCase()} ${y}*`];
   for (const c of cs) {
@@ -100,7 +100,7 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
       )}
 
       {hidden && (
-        <p className="edit-hint">A escala de {mesNome} está sendo montada. Os nomes aparecem aqui quando a liderança aprovar.</p>
+        <p className="edit-hint">A escala de {mesNome} está sendo montada. Os cultos que já aconteceram mostram quem serviu; os próximos aparecem quando a liderança aprovar.</p>
       )}
 
       {!edit && lider && !status.official && (
@@ -145,7 +145,7 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
                         <span className="dn">{c.date.slice(8, 10)}</span>
                         <span className="tt">{c.title}</span>
                         {yours(c).length > 0 && <span className="ev-you">★ Você</span>}
-                        {draft && <span className="draft-flag small">Rascunho</span>}
+                        {draft(c) && <span className="draft-flag small">Rascunho</span>}
                       </Link>
                     </th>
                   ))}
@@ -187,7 +187,7 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
               <Link key={c.id} href={`/cultos/${c.id}`} className={`ccard${yours(c).length ? " mine" : ""}`}
                 style={{ "--tc": `var(--t-${serviceType(c.title)[0]})` } as React.CSSProperties}>
                 {yours(c).length > 0 && <span className="ev-you">★ Você · {yours(c).map(roleOf).join(", ")}</span>}
-                <h3>{dayName(c.date)} {ddmm(c.date)} · {c.title}{draft && <> <span className="draft-flag small">Rascunho</span></>}</h3>
+                <h3>{dayName(c.date)} {ddmm(c.date)} · {c.title}{draft(c) && <> <span className="draft-flag small">Rascunho</span></>}</h3>
                 <dl>
                   {fs.filter((f) => at(Number(c.id), f).length).map((f) => (
                     <div key={f} style={{ display: "contents" }}>
