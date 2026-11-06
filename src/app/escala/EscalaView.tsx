@@ -34,18 +34,11 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
       {!status.official && <span className="draft-flag" title={`Ainda não é a escala oficial: aguardando a aprovação de ${who}`}>Rascunho</span>}
     </div>
   );
-  // equipe só vê a escala de mês aprovado
-  if (!edit && !lider && !status.official) {
-    return (
-      <>
-        <div className="esc-top esc-full">{nav}</div>
-        <p className="edit-hint">A escala de {mesNome} está sendo montada. Ela aparece aqui quando for aprovada pela liderança.</p>
-      </>
-    );
-  }
+  // equipe vê os cultos do mês, mas os nomes só depois que a escala é aprovada
+  const hidden = !edit && !lider && !status.official;
 
   const cs = await all<Service>("SELECT * FROM services WHERE date LIKE ? ORDER BY date, id", [`${month}-%`]);
-  const slots = await all<Slot>(
+  const slots = hidden ? [] : await all<Slot>(
     `SELECT sm.id, sm.service_id, sm.member_id, sm.role, mb.name FROM service_members sm
      JOIN members mb ON mb.id=sm.member_id JOIN services s ON s.id=sm.service_id
      WHERE s.date LIKE ? ORDER BY sm.id`,
@@ -106,7 +99,11 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
         </div>
       )}
 
-      {!edit && !status.official && (
+      {hidden && (
+        <p className="edit-hint">A escala de {mesNome} está sendo montada. Os nomes aparecem aqui quando a liderança aprovar.</p>
+      )}
+
+      {!edit && lider && !status.official && (
         <p className="edit-hint">Rascunho: só a liderança está vendo a escala de {mesNome}. Ela aparece para a equipe quando {who} aprovar em Montar escala.</p>
       )}
 
@@ -118,7 +115,7 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
         <p className="edit-hint">
           Escolha outra pessoa na célula para trocar, “✕ Tirar da escala” para tirar, ou “+ acrescentar” para pôr mais alguém. Cada mudança salva na hora.
         </p>
-      ) : (
+      ) : hidden ? null : (
         <p className="today-mine esc-mine">
           <span className="you-dot">★</span>
           {yourCs.length
