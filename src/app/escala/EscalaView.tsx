@@ -66,6 +66,8 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
   const yours = (c: Service) => at(Number(c.id)).filter((s) => Number(s.member_id) === me.id);
   const yourCs = cs.filter((c) => yours(c).length);
   const col = (c: Service) => (yours(c).length ? " mine" : "");
+  // na Escala (só leitura), cada culto de mês ainda não aprovado leva o selo de rascunho
+  const draft = !edit && !status.official;
 
   const L = [`📅 *ESCALA RC LOUVOR – ${mesNome.toUpperCase()} ${y}*`];
   for (const c of cs) {
@@ -146,6 +148,7 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
                         <span className="dn">{c.date.slice(8, 10)}</span>
                         <span className="tt">{c.title}</span>
                         {yours(c).length > 0 && <span className="ev-you">★ Você</span>}
+                        {draft && <span className="draft-flag small">Rascunho</span>}
                       </Link>
                     </th>
                   ))}
@@ -187,7 +190,7 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
               <Link key={c.id} href={`/cultos/${c.id}`} className={`ccard${yours(c).length ? " mine" : ""}`}
                 style={{ "--tc": `var(--t-${serviceType(c.title)[0]})` } as React.CSSProperties}>
                 {yours(c).length > 0 && <span className="ev-you">★ Você · {yours(c).map(roleOf).join(", ")}</span>}
-                <h3>{dayName(c.date)} {ddmm(c.date)} · {c.title}</h3>
+                <h3>{dayName(c.date)} {ddmm(c.date)} · {c.title}{draft && <> <span className="draft-flag small">Rascunho</span></>}</h3>
                 <dl>
                   {fs.filter((f) => at(Number(c.id), f).length).map((f) => (
                     <div key={f} style={{ display: "contents" }}>
