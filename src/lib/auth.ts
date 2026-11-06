@@ -17,7 +17,7 @@ export type User = { id: number; name: string; access: Access; roles: string; si
 
 /** Simulador de acesso (só o administrador): o app passa a mostrar a visão desta pessoa, sem gravar nada. */
 export const SIM_COOKIE = "rc_ver_como";
-const SIM_BLOCK = "Simulação de acesso: é só para ver, nada é gravado. Volte para você para fazer mudanças.";
+const SIM_BLOCK = "Simulação de acesso: aqui só dá para mudar a disponibilidade da pessoa. Volte para você para fazer outras mudanças.";
 
 const RANK: Record<Access, number> = { banda: 1, ministro: 2, lider: 3 };
 
@@ -53,10 +53,12 @@ export async function requireLevel(level: Access): Promise<User> {
   return u!;
 }
 
-/** Só a própria pessoa mexe na disponibilidade dela. */
+/**
+ * Só a própria pessoa mexe na disponibilidade dela. Exceção: o administrador, no simulador de acesso,
+ * pode acertar a disponibilidade de quem está simulando (currentUser só simula para o administrador).
+ */
 export async function requireSelf(memberId: number): Promise<User> {
   const u = await currentUser();
-  if (u?.simulated) throw new Error(SIM_BLOCK);
   if (!u || u.id !== memberId) throw new Error("Sem permissão para esta ação.");
   return u;
 }

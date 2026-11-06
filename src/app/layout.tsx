@@ -68,7 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {me?.simulated && simPeople && real && (
           <div className="sim-bar">
             <div className="wrap">
-              <span>👁 Vendo o app como <b>{me.name}</b> (nível {levelName[me.access] ?? me.access}{me.roles && <> · {me.roles}</>}). Só para ver: nada é gravado.</span>
+              <span>👁 Vendo o app como <b>{me.name}</b> (nível {levelName[me.access] ?? me.access}{me.roles && <> · {me.roles}</>}). Dá para mudar a disponibilidade da pessoa; o resto é só para ver.</span>
               <SimulateAccess people={simPeople} realId={real.id} current={me.id} />
             </div>
           </div>
