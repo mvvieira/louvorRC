@@ -79,6 +79,20 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
   const byCount = new Map<number, { id: number; name: string; items: string[] }[]>();
   for (const [id, e] of perPerson) byCount.set(e.items.length, [...(byCount.get(e.items.length) ?? []), { id, ...e }]);
   const countRows = [...byCount].sort((a, b) => b[0] - a[0]).map(([n, ps]) => [n, ps.sort((a, b) => a.name.localeCompare(b.name))] as const);
+  // por função: quantas vezes cada um fez a função no mês; quem faz a função, marcou "posso" e ficou sem aparece apagado
+  const roleRows = fs.map((role) => {
+    const m = new Map<number, { name: string; items: string[] }>();
+    for (const sl of slots.filter((x) => roleOf(x) === role)) {
+      const c = svc.get(Number(sl.service_id));
+      if (!c) continue;
+      const e = m.get(Number(sl.member_id)) ?? { name: sl.name, items: [] };
+      e.items.push(ddmm(c.date));
+      m.set(Number(sl.member_id), e);
+    }
+    const list = [...m].map(([id, e]) => ({ id, ...e })).sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
+    const zero = slotPeople.filter((p) => p.roles.includes(role) && !m.has(p.id) && okIds.has(p.id));
+    return { role, total: list.reduce((n, p) => n + p.items.length, 0), list, zero };
+  }).filter((r) => r.total || r.zero.length);
   const idle = people.filter((p) => !perPerson.has(Number(p.id)) && okIds.has(Number(p.id)));
 
   const L = [`📅 *ESCALA RC LOUVOR – ${mesNome.toUpperCase()} ${y}*`];
@@ -220,6 +234,23 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
                         <td>{idle.map((p) => <span key={p.id} className="chip zero">{p.name} <b>0</b></span>)}</td>
                       </tr>
                     )}
+                  </tbody>
+                </table>
+              </div>
+              <h3>Por função</h3>
+              <p className="muted">Quantas vezes cada um faz a função no mês. Apagado: faz a função e marcou “posso”, mas ficou sem escala nela.</p>
+              <div className="acc-table dist-roles">
+                <table>
+                  <tbody>
+                    {roleRows.map(({ role, total, list, zero }) => (
+                      <tr key={role}>
+                        <th scope="row">{role}<br /><span className="muted">{total} escala{total === 1 ? "" : "s"}</span></th>
+                        <td>
+                          {list.map((p) => <span key={p.id} className="chip" title={p.items.join(" · ")}>{p.name} <b>{p.items.length}</b></span>)}
+                          {zero.map((p) => <span key={p.id} className="chip zero" title="Faz a função e marcou que pode, mas ficou sem escala nela">{p.name} <b>0</b></span>)}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
