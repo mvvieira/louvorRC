@@ -13,16 +13,33 @@ import { one, type Access } from "./db";
 
 export const COOKIE = "rc_acesso";
 export const YEAR = 60 * 60 * 24 * 365;
-export type User = { id: number; name: string; access: Access; roles: string };
+export type User = { id: number; name: string; access: Access; roles: string; simulated?: boolean };
+
+/** Simulador de acesso (só o administrador): o app passa a mostrar a visão desta pessoa, sem gravar nada. */
+export const SIM_COOKIE = "rc_ver_como";
+const SIM_BLOCK = "Simulação de acesso: é só para ver, nada é gravado. Volte para você para fazer mudanças.";
 
 const RANK: Record<Access, number> = { banda: 1, ministro: 2, lider: 3 };
 
-/** Quem está usando o app (uma consulta por requisição). */
-export const currentUser = cache(async (): Promise<User | null> => {
+/** Quem entrou de verdade neste aparelho (ignora a simulação de acesso). */
+export const realUser = cache(async (): Promise<User | null> => {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
   const u = await one<User>("SELECT id, name, access, roles FROM members WHERE token=? AND token<>'' AND active=1", [token]);
   return u ? { id: Number(u.id), name: u.name, access: u.access, roles: u.roles ?? "" } : null;
+});
+
+/**
+ * Quem está usando o app (uma consulta por requisição). Com o simulador ligado pelo administrador,
+ * é a pessoa simulada (marcada com `simulated`): as telas mostram a visão dela e as ações recusam gravar.
+ */
+export const currentUser = cache(async (): Promise<User | null> => {
+  const u = await realUser();
+  if (!u) return null;
+  const sim = Number((await cookies()).get(SIM_COOKIE)?.value);
+  if (!sim || sim === u.id || !(await isAdmin(u))) return u;
+  const o = await one<User>("SELECT id, name, access, roles FROM members WHERE id=? AND active=1", [sim]);
+  return o ? { id: Number(o.id), name: o.name, access: o.access, roles: o.roles ?? "", simulated: true } : u;
 });
 
 /** O usuário tem pelo menos este nível? */
@@ -31,6 +48,7 @@ export const can = (u: User | null, level: Access) => !!u && RANK[u.access] >= R
 /** Para server actions: barra quem não tem o nível (a tela esconde, mas a regra vale aqui). */
 export async function requireLevel(level: Access): Promise<User> {
   const u = await currentUser();
+  if (u?.simulated) throw new Error(SIM_BLOCK);
   if (!can(u, level)) throw new Error("Sem permissão para esta ação.");
   return u!;
 }
@@ -38,6 +56,7 @@ export async function requireLevel(level: Access): Promise<User> {
 /** Só a própria pessoa mexe na disponibilidade dela. */
 export async function requireSelf(memberId: number): Promise<User> {
   const u = await currentUser();
+  if (u?.simulated) throw new Error(SIM_BLOCK);
   if (!u || u.id !== memberId) throw new Error("Sem permissão para esta ação.");
   return u;
 }
@@ -50,7 +69,8 @@ export async function pageUser(level: Access = "banda", log = true): Promise<Use
   const h = await headers();
   const path = h.get("x-path") ?? "", ua = h.get("user-agent") ?? "";
   // grava depois de entregar a página (não deixa o app mais lento; erro no log não derruba a página)
-  if (log && path) after(() => logPage(u.id, path, ua).catch(() => {}));
+  // na simulação não registra acesso (seria em nome da outra pessoa)
+  if (log && path && !u.simulated) after(() => logPage(u.id, path, ua).catch(() => {}));
   return u;
 }
 

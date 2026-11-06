@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { badPassword, checkSecret, COOKIE, currentUser, hashSecret, INITIAL_PASSWORD, requireLevel, requireSelf, seesAccessLog } from "@/lib/auth";
+import { badPassword, checkSecret, COOKIE, currentUser, hashSecret, INITIAL_PASSWORD, isAdmin, realUser, requireLevel, requireSelf, seesAccessLog, SIM_COOKIE } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { all, db, newToken, one, run, type Access, type Song } from "@/lib/db";
 import { cifraHits } from "@/lib/match";
@@ -341,6 +341,7 @@ export async function applyDistribution(month: string, picks: { service_id: numb
 /** Sai deste celular (volta para o "Quem é você?"). */
 export async function logout() {
   (await cookies()).delete(COOKIE);
+  (await cookies()).delete(SIM_COOKIE);
   redirect("/entrar");
 }
 
@@ -357,6 +358,7 @@ export async function setMemberAccess(memberId: number, access: Access) {
 export async function changeMyPassword(current: string, next: string): Promise<{ ok: true } | { error: string }> {
   const me = await currentUser();
   if (!me) return { error: "Entre de novo no app." };
+  if (me.simulated) return { error: "Na simulação de acesso não dá para trocar senha." };
   const row = await one<{ pin_hash: string }>("SELECT pin_hash FROM members WHERE id=?", [me.id]);
   if (row?.pin_hash && !checkSecret(current, row.pin_hash)) return { error: "A senha atual não confere." };
   const bad = badPassword(next);
@@ -394,5 +396,24 @@ export async function reopenEscala(f: FormData) {
   const month = str(f, "month");
   if (!/^\d{4}-\d{2}$/.test(month)) return;
   await reopenMonth(month);
+  revalidatePath("/", "layout");
+}
+
+/* ---------- Simulador de acesso (só o administrador) ---------- */
+
+/** Liga a visão de outra pessoa (vale 8 horas neste aparelho); escolher a si mesmo desliga. */
+export async function simulateAccess(f: FormData) {
+  const real = await realUser();
+  if (!(await isAdmin(real))) throw new Error("Só o administrador usa o simulador de acesso.");
+  const id = Number(f.get("member"));
+  const c = await cookies();
+  if (id && id !== real!.id) c.set(SIM_COOKIE, String(id), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 8 });
+  else c.delete(SIM_COOKIE);
+  revalidatePath("/", "layout");
+}
+
+/** Volta para a própria visão. */
+export async function stopSimulation() {
+  (await cookies()).delete(SIM_COOKIE);
   revalidatePath("/", "layout");
 }

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { currentUser, seesAccessLog } from "@/lib/auth";
+import { currentUser, isAdmin, realUser, seesAccessLog } from "@/lib/auth";
+import { all } from "@/lib/db";
+import SimulateAccess from "./SimulateAccess";
 import { logout } from "./actions";
 import NavTabs from "./NavTabs";
 import ThemeSwitch from "./ThemeSwitch";
@@ -35,6 +37,13 @@ function Logo() {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const me = await currentUser();
   const admin = await seesAccessLog(me);
+  // simulador de acesso: só para o administrador de verdade (mesmo enquanto vê como outra pessoa)
+  const real = await realUser();
+  const simPeople = real && (await isAdmin(real))
+    ? (await all<{ id: number; name: string; access: string }>("SELECT id, name, access FROM members WHERE active=1 ORDER BY name"))
+      .map((p) => ({ id: Number(p.id), name: p.name, access: p.access }))
+    : null;
+  const levelName: Record<string, string> = { lider: "liderança", ministro: "ministro", banda: "banda" };
   const tema = (await cookies()).get("rc_tema")?.value;
   return (
     <html lang="pt-BR" data-tema={tema === "original" || tema === "noite" ? tema : undefined}>
@@ -56,8 +65,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {me && <NavTabs lider={me.access === "lider"} admin={admin} />}
           </div>
         </header>
-        {me && (
+        {me?.simulated && simPeople && real && (
+          <div className="sim-bar">
+            <div className="wrap">
+              <span>👁 Vendo o app como <b>{me.name}</b> (nível {levelName[me.access] ?? me.access}{me.roles && <> · {me.roles}</>}). Só para ver: nada é gravado.</span>
+              <SimulateAccess people={simPeople} realId={real.id} current={me.id} />
+            </div>
+          </div>
+        )}
+        {me && !me.simulated && (
           <div className="wrap me-bar">
+            {simPeople && real && <SimulateAccess people={simPeople} realId={real.id} />}
             <ThemeSwitch dark={tema === "noite"} />
             <span><b>{me.name}</b>{me.roles && <> · {me.roles}</>}</span>
             <Link className="btn ghost small" href="/senha">Trocar senha</Link>
