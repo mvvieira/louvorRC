@@ -62,6 +62,25 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
   // na Escala (só leitura), cada culto de mês ainda não aprovado leva o selo de rascunho
   const draft = (c: Service) => !edit && !status.official && c.date >= t;
 
+  // Montar: resumo de quantas escalas cada um pegou no mês (com os cultos de cada um na dica)
+  const okIds = edit ? new Set((await all<{ member_id: number }>(
+    `SELECT DISTINCT a.member_id FROM availability a JOIN services s ON s.id=a.service_id WHERE s.date LIKE ? AND a.available=1`,
+    [`${month}-%`],
+  )).map((r) => Number(r.member_id))) : new Set<number>();
+  const svc = new Map(cs.map((c) => [Number(c.id), c]));
+  const perPerson = new Map<number, { name: string; items: string[] }>();
+  for (const sl of slots) {
+    const c = svc.get(Number(sl.service_id));
+    if (!c) continue;
+    const e = perPerson.get(Number(sl.member_id)) ?? { name: sl.name, items: [] };
+    e.items.push(`${ddmm(c.date)} ${roleOf(sl)}`);
+    perPerson.set(Number(sl.member_id), e);
+  }
+  const byCount = new Map<number, { id: number; name: string; items: string[] }[]>();
+  for (const [id, e] of perPerson) byCount.set(e.items.length, [...(byCount.get(e.items.length) ?? []), { id, ...e }]);
+  const countRows = [...byCount].sort((a, b) => b[0] - a[0]).map(([n, ps]) => [n, ps.sort((a, b) => a.name.localeCompare(b.name))] as const);
+  const idle = people.filter((p) => !perPerson.has(Number(p.id)) && okIds.has(Number(p.id)));
+
   const L = [`📅 *ESCALA RC LOUVOR – ${mesNome.toUpperCase()} ${y}*`];
   for (const c of cs) {
     L.push("", `🔥 *${dayName(c.date).toUpperCase()} ${ddmm(c.date)} – ${c.title.toUpperCase()}*`);
@@ -182,6 +201,30 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
               </tbody>
             </table>
           </div>
+          {edit && slots.length > 0 && (
+            <section className="dist-load esc-load">
+              <h3>Escalas por pessoa em {mesNome}</h3>
+              <p className="muted">{perPerson.size} pessoa{perPerson.size === 1 ? "" : "s"} na escala, {slots.length} vaga{slots.length === 1 ? "" : "s"} preenchida{slots.length === 1 ? "" : "s"}. Passe o dedo ou o mouse no nome para ver os cultos.</p>
+              <div className="acc-table dist-roles">
+                <table>
+                  <tbody>
+                    {countRows.map(([n, ps]) => (
+                      <tr key={n}>
+                        <th scope="row">{n} escala{n === 1 ? "" : "s"}<br /><span className="muted">{ps.length} pessoa{ps.length === 1 ? "" : "s"}</span></th>
+                        <td>{ps.map((p) => <span key={p.id} className="chip" title={p.items.join(" · ")}>{p.name} <b>{n}</b></span>)}</td>
+                      </tr>
+                    ))}
+                    {idle.length > 0 && (
+                      <tr>
+                        <th scope="row">Sem escala<br /><span className="muted">marcaram “posso”</span></th>
+                        <td>{idle.map((p) => <span key={p.id} className="chip zero">{p.name} <b>0</b></span>)}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
           <div className={`cards${edit ? " hidden" : ""}`}>
             {cs.map((c) => (
               <Link key={c.id} href={`/cultos/${c.id}`} className={`ccard${yours(c).length ? " mine" : ""}`}
