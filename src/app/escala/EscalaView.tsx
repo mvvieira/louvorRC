@@ -31,6 +31,7 @@ export default async function EscalaView({ month, me, edit, done }: { month: str
       <Link className="btn icon" href={`${base}?m=${shift(month, -1)}`} aria-label="Mês anterior">‹</Link>
       <h2>{edit ? "Montar · " : ""}{mesNome} {y}</h2>
       <Link className="btn icon" href={`${base}?m=${shift(month, 1)}`} aria-label="Próximo mês">›</Link>
+      {!status.official && <span className="draft-flag" title={`Ainda não é a escala oficial: aguardando a aprovação de ${who}`}>Rascunho</span>}
     </div>
   );
   // equipe só vê a escala de mês aprovado
